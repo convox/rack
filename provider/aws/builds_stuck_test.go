@@ -1,12 +1,15 @@
 package aws
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -709,6 +712,123 @@ func TestBuildLogsFargate(t *testing.T) {
 				assert.Contains(t, put, `"status":{"S":"failed"}`)
 				assert.Contains(t, put, `"reason":{"S":"`+c.reason+`"}`)
 			}
+		})
+	}
+}
+
+func TestBuildLogsFargateCancel(t *testing.T) {
+	for _, c := range []struct {
+		name  string
+		block bool
+	}{
+		{"wait", false},
+		{"request", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var mu sync.Mutex
+			var logCalls atomic.Int32
+			stopped := false
+			inflight := make(chan struct{})
+			release := make(chan struct{})
+			finished := make(chan struct{})
+			var once sync.Once
+
+			p := stubProviderHandler(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				op := r.Header.Get("X-Amz-Target")
+
+				if op == "Logs_20140328.GetLogEvents" {
+					switch logCalls.Add(1) {
+					case 1:
+						_, _ = io.WriteString(w, `{"events":[{"message":"Step 1/2 : FROM httpd"}],"nextForwardToken":"f/1"}`)
+						return
+					case 2:
+						if c.block {
+							close(inflight)
+							select {
+							case <-r.Context().Done():
+							case <-release:
+							}
+						}
+					}
+					_, _ = io.WriteString(w, `{"events":[],"nextForwardToken":"f/1"}`)
+					return
+				}
+
+				mu.Lock()
+				defer mu.Unlock()
+
+				switch op {
+				case "DynamoDB_20120810.GetItem":
+					if stopped {
+						once.Do(func() { close(finished) })
+						_, _ = io.WriteString(w, buildItem("complete", "", ""))
+					} else {
+						_, _ = io.WriteString(w, buildItem("running", "", ""))
+					}
+				case "AmazonEC2ContainerServiceV20141113.DescribeTasks":
+					if stopped {
+						_, _ = io.WriteString(w, taskResponse("STOPPED", "Essential container in task exited", ""))
+					} else {
+						_, _ = io.WriteString(w, taskLaunchResponse("FARGATE", "RUNNING"))
+					}
+				case "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition":
+					_, _ = io.WriteString(w, `{"taskDefinition":{"containerDefinitions":[{"name":"build","logConfiguration":{"logDriver":"awslogs","options":{"awslogs-group":"convox-build","awslogs-stream-prefix":"convox"}}}]}}`)
+				default:
+					t.Errorf("unexpected request: %s", op)
+					w.WriteHeader(404)
+				}
+			}))
+
+			t.Cleanup(func() {
+				mu.Lock()
+				stopped = true
+				mu.Unlock()
+				close(release)
+
+				select {
+				case <-finished:
+				case <-time.After(5 * time.Second):
+					t.Error("the build task watcher did not finish")
+				}
+			})
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			r, err := p.WithContext(ctx).BuildLogs("httpd", "B123", structs.LogsOptions{})
+			require.NoError(t, err)
+
+			br := bufio.NewReader(r)
+
+			line, err := br.ReadString('\n')
+			require.NoError(t, err)
+			require.Equal(t, "Step 1/2 : FROM httpd\n", line)
+
+			if c.block {
+				select {
+				case <-inflight:
+				case <-time.After(5 * time.Second):
+					t.Fatal("no second GetLogEvents call")
+				}
+			}
+
+			cancel()
+
+			ended := make(chan struct{})
+			go func() {
+				_, _ = io.Copy(io.Discard, br)
+				close(ended)
+			}()
+
+			select {
+			case <-ended:
+			case <-time.After(time.Second):
+				t.Fatal("the log stream did not end")
+			}
+
+			calls := logCalls.Load()
+			time.Sleep(3 * time.Second)
+			require.Equal(t, calls, logCalls.Load(), "GetLogEvents called after the cancel")
 		})
 	}
 }

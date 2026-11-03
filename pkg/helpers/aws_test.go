@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/convox/rack/pkg/helpers"
@@ -147,7 +149,7 @@ func TestCloudWatchLogsStream(t *testing.T) {
 	var calls []time.Time
 
 	cf := &mockaws.CloudWatchLogsAPI{}
-	cf.On("FilterLogEvents", mock.Anything).Return(func(in *cloudwatchlogs.FilterLogEventsInput) *cloudwatchlogs.FilterLogEventsOutput {
+	cf.On("FilterLogEventsWithContext", mock.Anything, mock.Anything).Return(func(_ context.Context, in *cloudwatchlogs.FilterLogEventsInput, _ ...request.Option) *cloudwatchlogs.FilterLogEventsOutput {
 		calls = append(calls, time.Now())
 		return &cloudwatchlogs.FilterLogEventsOutput{
 			Events: []*cloudwatchlogs.FilteredLogEvent{
@@ -174,7 +176,7 @@ func TestCloudWatchLogsStream(t *testing.T) {
 	}
 	err := helpers.CloudWatchLogsStream(ctx, cf, wc, "grp", "strm", structs.LogsOptions{})
 	require.NoError(t, err)
-	cf.AssertNumberOfCalls(t, "FilterLogEvents", 2)
+	cf.AssertNumberOfCalls(t, "FilterLogEventsWithContext", 2)
 	require.Len(t, calls, 2)
 	require.GreaterOrEqual(t, calls[1].Sub(calls[0]), time.Second)
 }
@@ -188,7 +190,7 @@ func TestCloudWatchLogsStreamNoSince(t *testing.T) {
 	var starts []int64
 
 	cw := &mockaws.CloudWatchLogsAPI{}
-	cw.On("FilterLogEvents", mock.Anything).Return(func(in *cloudwatchlogs.FilterLogEventsInput) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+	cw.On("FilterLogEventsWithContext", mock.Anything, mock.Anything).Return(func(_ context.Context, in *cloudwatchlogs.FilterLogEventsInput, _ ...request.Option) (*cloudwatchlogs.FilterLogEventsOutput, error) {
 		starts = append(starts, aws.Int64Value(in.StartTime))
 		if len(starts) == 1 {
 			return &cloudwatchlogs.FilterLogEventsOutput{}, nil
@@ -204,6 +206,43 @@ func TestCloudWatchLogsStreamNoSince(t *testing.T) {
 
 	want := now.Add(-1 * time.Hour).UnixMilli()
 	require.Equal(t, []int64{want, want}, starts)
+}
+
+func TestCloudWatchLogsStreamCancel(t *testing.T) {
+	for name, fn := range map[string]func(context.Context) error{
+		"wait":     func(context.Context) error { return nil },
+		"throttle": func(context.Context) error { return awserr.New("ThrottlingException", "Rate exceeded", nil) },
+		"request": func(ctx context.Context) error {
+			select {
+			case <-ctx.Done():
+			case <-time.After(2 * time.Second):
+			}
+			return awserr.New(request.CanceledErrorCode, "request context canceled", ctx.Err())
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			cw := &mockaws.CloudWatchLogsAPI{}
+			cw.On("FilterLogEventsWithContext", mock.Anything, mock.Anything).Return(func(rctx context.Context, _ *cloudwatchlogs.FilterLogEventsInput, _ ...request.Option) (*cloudwatchlogs.FilterLogEventsOutput, error) {
+				time.AfterFunc(100*time.Millisecond, cancel)
+				if err := fn(rctx); err != nil {
+					return nil, err
+				}
+				return &cloudwatchlogs.FilterLogEventsOutput{}, nil
+			})
+
+			wc := &myWriteCloser{
+				bufio.NewWriter(&bytes.Buffer{}),
+			}
+
+			start := time.Now()
+			_ = helpers.CloudWatchLogsStream(ctx, cw, wc, "grp", "strm", structs.LogsOptions{})
+			require.Less(t, time.Since(start), time.Second)
+			cw.AssertNumberOfCalls(t, "FilterLogEventsWithContext", 1)
+		})
+	}
 }
 
 type myWriteCloser struct {

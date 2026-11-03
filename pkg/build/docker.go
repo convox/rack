@@ -287,6 +287,8 @@ func (bb *Build) buildArgs(dockerfile string, env map[string]string) ([]string, 
 	return args, nil
 }
 
+var convoxEnvPath = "/go/bin/convox-env"
+
 func (bb *Build) injectConvoxEnv(tag string) error {
 	bb.Printf("Injecting: convox-env\n")
 
@@ -328,7 +330,12 @@ func (bb *Build) injectConvoxEnv(tag string) error {
 	}
 	defer os.RemoveAll(tmp)
 
-	if _, err := bb.Exec.Execute("cp", "/go/bin/convox-env", filepath.Join(tmp, "convox-env")); err != nil {
+	bin, err := os.ReadFile(convoxEnvPath)
+	if err != nil {
+		return fmt.Errorf("copy convox-env: %w", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tmp, "convox-env"), bin, 0755); err != nil {
 		return fmt.Errorf("copy convox-env: %w", err)
 	}
 

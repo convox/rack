@@ -178,7 +178,6 @@ jobs:
       - run:
           command: make test
           no_output_timeout: 20m
-      - run: curl -s https://codecov.io/bash | bash
   update:
     docker:
       - image: cimg/go:1.26.10

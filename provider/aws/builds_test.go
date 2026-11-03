@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,6 +137,17 @@ func TestBuildGet(t *testing.T) {
 //   }, b)
 // }
 
+type flushRecorder struct {
+	bytes.Buffer
+	flushes   int
+	flushedAt int
+}
+
+func (f *flushRecorder) Flush() {
+	f.flushes++
+	f.flushedAt = f.Len()
+}
+
 func TestBuildExport(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleBuildGetItem,
@@ -148,15 +160,19 @@ func TestBuildExport(t *testing.T) {
 
 	d := stubDocker(
 		cycleBuildDockerLogin,
+		cycleBuildDockerImages,
 		cycleBuildDockerPull,
 		cycleBuildDockerSave,
+		cycleBuildDockerRemove,
 	)
 	defer d.Close()
 
-	buf := &bytes.Buffer{}
+	buf := &flushRecorder{}
 
 	err := provider.BuildExport("httpd", "B123", buf)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, buf.flushes)
+	assert.Greater(t, buf.flushedAt, 0)
 
 	gz, err := gzip.NewReader(buf)
 	assert.NoError(t, err)
@@ -1455,4 +1471,244 @@ var cycleEnvironmentPut = awsutil.Cycle{
 	Response: awsutil.Response{
 		StatusCode: 200,
 	},
+}
+
+var cycleBuildDockerImages = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "GET",
+		RequestURI: "/v1.24/images/json",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `[]`,
+	},
+}
+
+var cycleBuildDockerRemove = awsutil.Cycle{
+	Request: awsutil.Request{
+		Method:     "DELETE",
+		RequestURI: "/v1.24/images/778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb:web.BAFVEWUCAYT",
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `[{"Untagged": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb:web.BAFVEWUCAYT"}]`,
+	},
+}
+
+var cycleBuildGetItemTwoServices = awsutil.Cycle{
+	Request: cycleBuildGetItem.Request,
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body: `{
+			"Item": {
+				"status": {"S": "complete"},
+				"created": {"S": "20160404.143416.178278576"},
+				"app": {"S": "httpd"},
+				"manifest": {"S": "version: \"2\"\nservices:\n  web:\n    image: httpd\n  worker:\n    image: httpd\n"},
+				"release": {"S": "RVWOJNKRAXU"},
+				"id": {"S": "BAFVEWUCAYT"}
+			}
+		}`,
+	},
+}
+
+var cycleBuildDescribeStacksMissing = awsutil.Cycle{
+	Request: cycleBuildDescribeStacks.Request,
+	Response: awsutil.Response{
+		StatusCode: 400,
+		Body:       `<ErrorResponse><Error><Type>Sender</Type><Code>ValidationError</Code><Message>Stack with id convox-httpd does not exist</Message></Error></ErrorResponse>`,
+	},
+}
+
+const (
+	exportWeb    = "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb:web.BAFVEWUCAYT"
+	exportWorker = "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb:worker.BAFVEWUCAYT"
+	importWeb    = "123456789012.dkr.ecr.us-east-1.amazonaws.com/convox-other-aaaaaaa:web.BSOURCE"
+	importWorker = "123456789012.dkr.ecr.us-east-1.amazonaws.com/convox-other-aaaaaaa:worker.BSOURCE"
+)
+
+func exportProvider(t *testing.T) *AwsStub {
+	p := StubAwsProvider(
+		cycleBuildGetItemTwoServices,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeRepositories,
+		cycleBuildGetAuthorizationToken,
+	)
+	t.Cleanup(p.Close)
+
+	return p
+}
+
+func importProvider(t *testing.T) *AwsStub {
+	p := StubAwsProvider(
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeRepositories,
+		cycleBuildGetAuthorizationToken,
+		cycleBuildDescribeStacksMissing,
+	)
+	t.Cleanup(p.Close)
+
+	return p
+}
+
+func importArchive(t *testing.T, manifest string) io.Reader {
+	image := &bytes.Buffer{}
+	itw := tar.NewWriter(image)
+
+	if manifest != "" {
+		require.NoError(t, itw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "manifest.json", Mode: 0600, Size: int64(len(manifest))}))
+		_, err := itw.Write([]byte(manifest))
+		require.NoError(t, err)
+	}
+
+	require.NoError(t, itw.Close())
+
+	build := `{"id":"BSOURCE","app":"other"}`
+
+	buf := &bytes.Buffer{}
+	gz := gzip.NewWriter(buf)
+	tw := tar.NewWriter(gz)
+
+	require.NoError(t, tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "build.json", Mode: 0600, Size: int64(len(build))}))
+	_, err := tw.Write([]byte(build))
+	require.NoError(t, err)
+
+	require.NoError(t, tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "other.BSOURCE.tar", Mode: 0600, Size: int64(image.Len())}))
+	_, err = tw.Write(image.Bytes())
+	require.NoError(t, err)
+
+	require.NoError(t, tw.Close())
+	require.NoError(t, gz.Close())
+
+	return buf
+}
+
+const importManifest = `[{"Config":"config.json","RepoTags":["` + importWeb + `","` + importWorker + `"],"Layers":[]}]`
+
+func callsWithPrefix(calls []string, prefix string) []string {
+	matched := []string{}
+
+	for _, c := range calls {
+		if strings.HasPrefix(c, prefix) {
+			matched = append(matched, c)
+		}
+	}
+
+	return matched
+}
+
+func TestBuildExportRemovesAddedImages(t *testing.T) {
+	d := &fakeDocker{images: []string{exportWeb}}
+	d.start(t)
+
+	buf := &bytes.Buffer{}
+
+	require.NoError(t, exportProvider(t).BuildExport("httpd", "B123", buf))
+	require.NotZero(t, buf.Len())
+
+	calls := d.Calls()
+	require.Equal(t, []string{"rmi " + exportWorker}, callsWithPrefix(calls, "rmi "))
+	require.Equal(t, "rmi "+exportWorker, calls[len(calls)-1])
+	require.Contains(t, calls, "save")
+}
+
+func TestBuildExportPullErrorWaitsForPulls(t *testing.T) {
+	d := &fakeDocker{
+		fail: map[string]bool{"pull " + exportWeb: true},
+		slow: map[string]time.Duration{"pull " + exportWorker: 300 * time.Millisecond},
+	}
+	d.start(t)
+
+	buf := &bytes.Buffer{}
+
+	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
+	require.Zero(t, buf.Len())
+
+	calls := d.Calls()
+	require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, calls[len(calls)-2:])
+	require.Contains(t, calls[:len(calls)-2], "pull "+exportWorker)
+	require.NotContains(t, calls, "save")
+}
+
+func TestBuildExportSaveError(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+
+	d := &fakeDocker{fail: map[string]bool{"save": true}}
+	d.start(t)
+
+	buf := &bytes.Buffer{}
+
+	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
+	require.Zero(t, buf.Len())
+
+	calls := d.Calls()
+	require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, calls[len(calls)-2:])
+
+	entries, err := os.ReadDir(tmp)
+	require.NoError(t, err)
+	require.Empty(t, entries)
+}
+
+func TestBuildExportListError(t *testing.T) {
+	d := &fakeDocker{fail: map[string]bool{"images": true}}
+	d.start(t)
+
+	buf := &bytes.Buffer{}
+
+	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
+	require.Zero(t, buf.Len())
+	require.Equal(t, []string{"login", "images"}, d.Calls())
+}
+
+func TestBuildImportRemovesAddedImages(t *testing.T) {
+	d := &fakeDocker{images: []string{importWeb}}
+	d.start(t)
+
+	_, err := importProvider(t).BuildImport("httpd", importArchive(t, importManifest))
+	require.Error(t, err)
+
+	calls := d.Calls()
+	tags := callsWithPrefix(calls, "tag ")
+	require.Len(t, tags, 2)
+	require.Len(t, callsWithPrefix(calls, "push "), 2)
+
+	pushed := false
+	for _, c := range calls {
+		pushed = pushed || strings.HasPrefix(c, "push ")
+		require.False(t, pushed && strings.HasPrefix(c, "tag "), "tag after push")
+	}
+
+	removed := []string{"rmi " + importWorker}
+	for _, tag := range tags {
+		removed = append(removed, "rmi "+strings.TrimPrefix(tag, "tag "))
+	}
+
+	require.ElementsMatch(t, removed, callsWithPrefix(calls, "rmi "))
+}
+
+func TestBuildImportTagError(t *testing.T) {
+	d := &fakeDocker{fail: map[string]bool{"tag": true}}
+	d.start(t)
+
+	_, err := importProvider(t).BuildImport("httpd", importArchive(t, importManifest))
+	require.Error(t, err)
+
+	calls := d.Calls()
+	tags := callsWithPrefix(calls, "tag ")
+	require.Len(t, tags, 1)
+	require.Empty(t, callsWithPrefix(calls, "push "))
+
+	removed := []string{"rmi " + importWeb, "rmi " + importWorker, "rmi " + strings.TrimPrefix(tags[0], "tag ")}
+	require.ElementsMatch(t, removed, callsWithPrefix(calls, "rmi "))
+}
+
+func TestBuildImportManifestError(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	_, err := importProvider(t).BuildImport("httpd", importArchive(t, ""))
+	require.EqualError(t, err, "unable to locate manifest")
+	require.Contains(t, d.Calls(), "load")
 }

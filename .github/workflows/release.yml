@@ -4,55 +4,69 @@ on:
     branches-ignore: ["*"]
     tags: ["*"]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   release:
     if: github.repository == 'convox/rack'
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: golang
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: go.mod
+          cache: false
       - name: go path
         run: |
-          mkdir -p ${HOME}/go
-          echo "GOPATH=${HOME}/go" >> $GITHUB_ENV
+          mkdir -p "${HOME}/go"
+          echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
       - name: version
-        run: echo "VERSION=$(echo ${{ github.ref }} | awk -F/ '{print $3}')" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
       - name: changelog
         id: changelog
         run: |
-          changelog=$(git log --pretty="* %s" ...$(git describe --abbrev=0 HEAD~))
-          echo ${changelog}
+          changelog=$(git log --pretty="* %s" ..."$(git describe --abbrev=0 HEAD~)")
+          echo "${changelog}"
           changelog="${changelog//'%'/'%25'}"
           changelog="${changelog//$'\n'/'%0A'}"
           changelog="${changelog//$'\r'/'%0D'}"
-          echo "text=${changelog}" >> $GITHUB_OUTPUT
+          echo "text=${changelog}" >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          image: docker.io/tonistiigi/binfmt:qemu-v10.2.3@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: image=moby/buildkit:v0.33.1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
       - name: login
         run: docker login --username "${DOCKER_USERNAME}" --password "${DOCKER_PASSWORD}"
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      - name: secrets
-        run: ci/secrets.sh
-        env:
-          SECRETS: ${{ toJson(secrets) }}
       - name: release
         run: make release-all
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: create relase version
         run: go run cmd/release/main.go create "${VERSION}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: notify slack
         run: TYPE=release ci/slack.sh
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: circleci trigger for e2e tests
         id: convox
-        uses: CircleCI-Public/trigger-circleci-pipeline-action@v1.1.0
+        uses: CircleCI-Public/trigger-circleci-pipeline-action@a81cd720792a6088debd7f182b552845abb86f1b # v1.2.0
         env:
           CCI_TOKEN: ${{ secrets.CCI_TOKEN }}

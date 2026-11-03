@@ -2,10 +2,13 @@ package cache
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 type Cache map[string]map[string]*CacheItem
@@ -16,8 +19,10 @@ type CacheItem struct {
 }
 
 var (
-	cache = Cache{}
-	lock  = sync.Mutex{}
+	cache       = Cache{}
+	lock        = sync.Mutex{}
+	generations = map[string]uint64{}
+	flights     singleflight.Group
 )
 
 func Get(collection string, key interface{}) interface{} {
@@ -77,6 +82,8 @@ func Clear(collection string, key interface{}) error {
 	lock.Lock()
 	defer lock.Unlock()
 
+	generations[collection]++
+
 	hash, err := hashKey(key)
 
 	if err != nil {
@@ -94,6 +101,8 @@ func ClearPrefix(collection string, prefix string) error {
 	lock.Lock()
 	defer lock.Unlock()
 
+	generations[collection]++
+
 	for k := range cache[collection] {
 		match, err := hashPrefix(k, prefix)
 		if err != nil {
@@ -106,6 +115,49 @@ func ClearPrefix(collection string, prefix string) error {
 	}
 
 	return nil
+}
+
+// Fetch returns the cached value or runs fill once for all concurrent callers, storing its value when fill returns true.
+func Fetch(collection string, key interface{}, ttl time.Duration, fill func() (interface{}, bool, error)) (interface{}, error) {
+	if os.Getenv("PROVIDER") == "test" {
+		v, _, err := fill()
+		return v, err
+	}
+
+	hash, err := hashKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	lock.Lock()
+	if item := cache[collection][hash]; item != nil && !item.Expires.Before(time.Now()) {
+		lock.Unlock()
+		return item.Item, nil
+	}
+	gen := generations[collection]
+	lock.Unlock()
+
+	v, err, _ := flights.Do(fmt.Sprintf("%s\x00%d\x00%s", collection, gen, hash), func() (interface{}, error) {
+		v, store, err := fill()
+		if err != nil || !store {
+			return v, err
+		}
+
+		lock.Lock()
+		defer lock.Unlock()
+
+		if generations[collection] == gen {
+			if cache[collection] == nil {
+				cache[collection] = map[string]*CacheItem{}
+			}
+
+			cache[collection][hash] = &CacheItem{Item: v, Expires: time.Now().Add(ttl)}
+		}
+
+		return v, nil
+	})
+
+	return v, err
 }
 
 func hashKey(key interface{}) (string, error) {

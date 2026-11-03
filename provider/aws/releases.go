@@ -107,7 +107,10 @@ func (p *Provider) ReleaseGet(app, id string) (*structs.Release, error) {
 	}
 
 	if key != "" {
-		if d, err := crypt.New().Decrypt(key, data); err == nil {
+		c := crypt.New()
+		c.Config = helpers.SessionConfig()
+
+		if d, err := c.Decrypt(key, data); err == nil {
 			data = d
 		}
 	}
@@ -369,6 +372,11 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 		rackSMParam = "No"
 	}
 
+	routerSGShared := false
+	if rs, err := p.describeStack(p.Rack); err == nil {
+		routerSGShared = sharedRouterSecurityGroup(stackOutputs(rs))
+	}
+
 	tp["PermissionsBoundary"] = p.permissionsBoundary()
 
 	appSMParam, appSMErr := p.stackParameter(p.rackStack(r.App), "SecretsManagerEnv")
@@ -450,6 +458,7 @@ func (p *Provider) ReleasePromote(app, id string, opts structs.ReleasePromoteOpt
 			"SecretsManagerARN":                  smARN,
 			"SecretsManagerKeys":                 smKeys,
 			"PermissionsBoundary":                tp["PermissionsBoundary"],
+			"RouterSecurityGroupShared":          routerSGShared,
 		}
 
 		data, err := formationTemplate("service", stp)
@@ -757,7 +766,10 @@ func (p *Provider) releaseSave(r *structs.Release) error {
 	}
 
 	if key != "" {
-		env, err = crypt.New().Encrypt(key, []byte(env))
+		c := crypt.New()
+		c.Config = helpers.SessionConfig()
+
+		env, err = c.Encrypt(key, []byte(env))
 		if err != nil {
 			return err
 		}
@@ -1157,4 +1169,8 @@ func (p *Provider) validateNLBSchemeMatch(m *manifest.Manifest) error {
 		}
 	}
 	return nil
+}
+
+func sharedRouterSecurityGroup(outputs map[string]string) bool {
+	return outputs["RouterSecurityGroup"] != "" && outputs["RouterSecurityGroup"] == outputs["RouterInternalSecurityGroup"]
 }

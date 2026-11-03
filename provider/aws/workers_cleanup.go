@@ -354,7 +354,7 @@ func (p *Provider) SyncInstancesIpInSecurityGroup() error {
 
 	for i := range userDefinedIps {
 		if ipHash[*userDefinedIps[i].CidrIp] {
-			ipHash[*prevIps[i].CidrIp] = false
+			ipHash[*userDefinedIps[i].CidrIp] = false
 		}
 	}
 

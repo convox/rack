@@ -593,3 +593,155 @@ func TestServiceTemplatePortOnlyLoadBalancers(t *testing.T) {
 	require.Contains(t, props, "HealthCheckGracePeriodSeconds")
 	require.Contains(t, props, "Role")
 }
+
+func TestServiceTemplatePlacementStrategies(t *testing.T) {
+	for name, tc := range map[string]struct {
+		yml  string
+		want string
+	}{
+		"worker": {
+			yml: `services:
+  api:
+    image: x
+`,
+			want: `{"Fn::If":["FargateEither",[],[{"Type":"spread","Field":"attribute:ecs.availability-zone"},{"Type":"spread","Field":"instanceId"}]]}`,
+		},
+		"agent": {
+			yml: `services:
+  api:
+    image: x
+    agent: true
+`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m, err := manifest.Load([]byte(tc.yml), nil)
+			require.NoError(t, err)
+			props := serviceProperties(t, renderServiceTemplate(t, m, "api"))
+			if tc.want == "" {
+				require.NotContains(t, props, "PlacementStrategies")
+				return
+			}
+			require.JSONEq(t, tc.want, string(props["PlacementStrategies"]))
+		})
+	}
+}
+
+func TestServiceTemplateSecurityIngress(t *testing.T) {
+	router := `{"IpProtocol":"tcp","FromPort":"3000","ToPort":"3000","SourceSecurityGroupId":{"Fn::ImportValue":{"Fn::Sub":"${Rack}:RouterSecurityGroup"}}}`
+	internal := `{"IpProtocol":"tcp","FromPort":"3000","ToPort":"3000","SourceSecurityGroupId":{"Fn::ImportValue":{"Fn::Sub":"${Rack}:RouterInternalSecurityGroup"}}}`
+	nlb := `{"IpProtocol":"tcp","FromPort":8443,"ToPort":8443,"CidrIp":{"Fn::ImportValue":{"Fn::Sub":"${Rack}:VpcCidr"}}},
+		{"IpProtocol":"tcp","FromPort":8443,"ToPort":8443,"SourceSecurityGroupId":{"Fn::ImportValue":{"Fn::Sub":"${Rack}:NLBSecurityGroup"}}}`
+
+	for name, tc := range map[string]struct {
+		yml  string
+		stp  map[string]interface{}
+		want string
+	}{
+		"port": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+`,
+			want: "[" + router + "]",
+		},
+		"internal": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internal: true
+`,
+			want: "[" + internal + "]",
+		},
+		"internal-shared-router-sg": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internal: true
+`,
+			stp:  map[string]interface{}{"RouterSecurityGroupShared": true},
+			want: "[" + internal + "]",
+		},
+		"internal-and-external": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internalAndExternal: true
+`,
+			want: "[" + internal + "," + router + "]",
+		},
+		"internal-and-external-shared-router-sg": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internalAndExternal: true
+`,
+			stp:  map[string]interface{}{"RouterSecurityGroupShared": true},
+			want: "[" + internal + "]",
+		},
+		"internal-and-external-nlb": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internalAndExternal: true
+    nlb:
+      - port: 8443
+`,
+			want: "[" + internal + "," + router + "," + nlb + "]",
+		},
+		"internal-and-external-nlb-shared-router-sg": {
+			yml: `services:
+  api:
+    image: x
+    port: http:3000
+    internalAndExternal: true
+    nlb:
+      - port: 8443
+`,
+			stp:  map[string]interface{}{"RouterSecurityGroupShared": true},
+			want: "[" + internal + "," + nlb + "]",
+		},
+		"nlb": {
+			yml: `services:
+  api:
+    image: x
+    nlb:
+      - port: 8443
+`,
+			want: "[" + nlb + "]",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m, err := manifest.Load([]byte(tc.yml), nil)
+			require.NoError(t, err)
+			var security struct {
+				Properties struct {
+					SecurityGroupIngress json.RawMessage
+				}
+			}
+			require.NoError(t, json.Unmarshal(extractResource(t, renderServiceTemplateWithStp(t, m, "api", tc.stp), "Security"), &security))
+			require.JSONEq(t, tc.want, string(security.Properties.SecurityGroupIngress))
+		})
+	}
+}
+
+func TestSharedRouterSecurityGroup(t *testing.T) {
+	for _, tc := range []struct {
+		outputs map[string]string
+		want    bool
+	}{
+		{map[string]string{}, false},
+		{map[string]string{"RouterSecurityGroup": "sg-a"}, false},
+		{map[string]string{"RouterInternalSecurityGroup": "sg-a"}, false},
+		{map[string]string{"RouterSecurityGroup": "sg-a", "RouterInternalSecurityGroup": "sg-b"}, false},
+		{map[string]string{"RouterSecurityGroup": "sg-a", "RouterInternalSecurityGroup": "sg-a"}, true},
+	} {
+		require.Equal(t, tc.want, sharedRouterSecurityGroup(tc.outputs), "%v", tc.outputs)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -264,6 +265,10 @@ func TestBuildGeneration2Options(t *testing.T) {
 		Source:      "object://app1/object.tgz",
 	}
 
+	envBin := filepath.Join(t.TempDir(), "convox-env")
+	require.NoError(t, os.WriteFile(envBin, []byte("convox-env-binary"), 0755))
+	build.SetConvoxEnvPath(t, envBin)
+
 	testBuild(t, opts, func(b *build.Build, p *structs.MockProvider, e *exec.MockInterface, out *bytes.Buffer) {
 		p.On("BuildGet", "app1", "build1").Return(fxBuildStarted(), nil).Once()
 		e.On("Stream", mock.Anything, mock.Anything, "docker", "login", "-u", "user1", "--password-stdin", "host1").Return(nil).Run(func(args mock.Arguments) {
@@ -288,8 +293,17 @@ func TestBuildGeneration2Options(t *testing.T) {
 		e.On("Execute", "docker", "tag", "rack1/app1:web.build1", "push1:web.build1").Return([]byte("tagging\n"), nil)
 		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Cmd}}").Return([]byte(`["command2"]`), nil)
 		e.On("Execute", "docker", "inspect", "rack1/app1:web.build1", "--format", "{{json .Config.Entrypoint}}").Return([]byte(`["entrypoint2"]`), nil)
-		e.On("Execute", "cp", "/go/bin/convox-env", mock.AnythingOfType("string")).Return([]byte("copying\n"), nil)
-		e.On("Execute", "docker", "build", "-t", "rack1/app1:web.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil)
+		e.On("Execute", "docker", "build", "-t", "rack1/app1:web.build1", mock.AnythingOfType("string")).Return([]byte("building convox-env\n"), nil).Run(func(args mock.Arguments) {
+			bin := filepath.Join(args.String(4), "convox-env")
+			src, err := os.Stat(envBin)
+			require.NoError(t, err)
+			fi, err := os.Stat(bin)
+			require.NoError(t, err)
+			require.Equal(t, src.Mode().Perm(), fi.Mode().Perm())
+			data, err := os.ReadFile(bin)
+			require.NoError(t, err)
+			require.Equal(t, "convox-env-binary", string(data))
+		})
 		e.On("Execute", "docker", "push", "push1:web.build1").Return([]byte("pushing\n"), nil)
 		p.On("ObjectStore", "app1", "build/build1/logs", mock.Anything, structs.ObjectStoreOptions{}).Return(fxObject(), nil).Run(func(args mock.Arguments) {
 			data, err := io.ReadAll(args.Get(2).(io.Reader))

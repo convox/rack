@@ -5,9 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/convox/rack/pkg/structs"
 	docker "github.com/fsouza/go-dockerclient"
+)
+
+var (
+	registryAuthTimeout = 20 * time.Second
+	registryDockerHost  = "unix:///var/run/docker.sock"
 )
 
 func (p *Provider) RegistryAdd(server, username, password string) (*structs.Registry, error) {
@@ -25,7 +31,7 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 		return nil, fmt.Errorf("password must not be blank")
 	}
 
-	dc, err := docker.NewClient("unix:///var/run/docker.sock")
+	dc, err := docker.NewClient(registryDockerHost)
 	if err != nil {
 		return nil, err
 	}
@@ -54,12 +60,23 @@ func (p *Provider) RegistryAdd(server, username, password string) (*structs.Regi
 	case p.PrivateBuild:
 		// Don't authenticate the registry if PrivateBuild is enabled.  Keeps all registry access on the Build Cluster rather than the main Rack.
 	default:
-		_, err := dc.AuthCheck(&docker.AuthConfiguration{
-			ServerAddress: server,
-			Username:      username,
-			Password:      password,
-		})
-		if err != nil {
+		errch := make(chan error, 1)
+
+		go func() {
+			_, err := dc.AuthCheck(&docker.AuthConfiguration{
+				ServerAddress: server,
+				Username:      username,
+				Password:      password,
+			})
+			errch <- err
+		}()
+
+		select {
+		case err := <-errch:
+			if err != nil {
+				return nil, fmt.Errorf("unable to authenticate")
+			}
+		case <-time.After(registryAuthTimeout):
 			return nil, fmt.Errorf("unable to authenticate")
 		}
 	}

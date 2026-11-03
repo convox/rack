@@ -14,6 +14,7 @@ import (
 	"github.com/convox/rack/pkg/test/awsutil"
 	"github.com/convox/rack/provider/aws"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	awssdk "github.com/aws/aws-sdk-go/aws"
@@ -424,40 +425,62 @@ func TestSystemProcessesList(t *testing.T) {
 		cycleSystemDescribeStacks,
 		cycleSystemListTasks,
 		cycleSystemDescribeTasks,
+		cycleSystemDescribeContainerInstances,
 		cycleSystemDescribeTaskDefinition,
-		cycleSystemDescribeContainerInstances,
 		cycleSystemDescribeRackInstances,
-		cycleECSListServices,
-		cycleECSDescribeServices,
-		cycleSystemDescribeTaskDefinition2,
-		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeRackServices,
 	)
 	defer provider.Close()
 
-	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{})
+	ps, err := provider.SystemProcesses(structs.SystemProcessesOptions{})
 
 	assert.NoError(t, err)
+	assert.Len(t, ps, 1)
+	assert.Equal(t, 0, provider.handler.Remaining())
+	cw, ok := provider.CloudWatch.(*mockaws.CloudWatchAPI)
+	assert.True(t, ok)
+	cw.AssertNumberOfCalls(t, "GetMetricData", 1)
+}
+
+var cycleSystemDescribeRackServices = awsutil.Cycle{
+	Request: awsutil.Request{
+		RequestURI: "/",
+		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeServices",
+		Body:       `{"cluster": "cluster-test", "services": ["arn:aws:ecs:us-east-1:778743527532:service/convox-myapp-ServiceDatabase-1I2PTXAZ5ECRD"]}`,
+	},
+	Response: awsutil.Response{
+		StatusCode: 200,
+		Body:       `{"failures": [], "services": [{"serviceName": "convox-ServiceDatabase", "taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox:34"}]}`,
+	},
 }
 
 func TestSystemProcessesListAll(t *testing.T) {
 	provider := StubAwsProvider(
 		cycleSystemListTasksAll,
 		cycleSystemDescribeTasksAll,
-		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeContainerInstances,
+		cycleSystemDescribeTaskDefinition,
 		cycleSystemDescribeRackInstances,
 		cycleECSListServices,
 		cycleECSDescribeServices,
-		cycleSystemDescribeTaskDefinition2,
-		cycleSystemDescribeContainerInstances,
 	)
 	defer provider.Close()
 
-	_, err := provider.SystemProcesses(structs.SystemProcessesOptions{
+	ps, err := provider.SystemProcesses(structs.SystemProcessesOptions{
 		All: options.Bool(true),
 	})
 
 	assert.NoError(t, err)
+	assert.Equal(t, 0, provider.handler.Remaining())
+
+	assert.Len(t, ps, 1)
+	for _, p := range ps {
+		assert.Equal(t, "convox", p.App)
+	}
+
+	cw, ok := provider.CloudWatch.(*mockaws.CloudWatchAPI)
+	assert.True(t, ok)
+	cw.AssertNotCalled(t, "GetMetricData", mock.Anything)
 }
 
 var cycleSystemDescribeStacks = awsutil.Cycle{
@@ -1048,7 +1071,7 @@ var cycleECSListServices = awsutil.Cycle{
 	Request: awsutil.Request{
 		RequestURI: "/",
 		Operation:  "AmazonEC2ContainerServiceV20141113.ListServices",
-		Body:       `{"cluster": "cluster-test", "maxResults": 10}`,
+		Body:       `{"cluster": "cluster-test", "maxResults": 100}`,
 	},
 	Response: awsutil.Response{
 		StatusCode: 200,
@@ -1503,6 +1526,7 @@ var cycleSystemDescribeContainerInstances = awsutil.Cycle{
 			"failures": [],
 			"containerInstances": [
 				{
+					"containerInstanceArn": "arn:aws:ecs:us-east-1:778743527532:container-instance/cluster-test/e126c67d-fa95-4b09-8b4a-3723932cd2aa",
 					"ec2InstanceId": "i-5bc45dc2"
 				}
 			]
@@ -1535,52 +1559,6 @@ var cycleSystemDescribeRackInstances = awsutil.Cycle{
 					</item>
 				</reservationSet>
 			</DescribeInstancesResponse>
-		}`,
-	},
-}
-
-var cycleSystemDescribeTaskDefinition2 = awsutil.Cycle{
-	Request: awsutil.Request{
-		RequestURI: "/",
-		Operation:  "AmazonEC2ContainerServiceV20141113.DescribeTaskDefinition",
-		Body: `{
-			"taskDefinition": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34"
-		}`,
-	},
-	Response: awsutil.Response{
-		StatusCode: 200,
-		Body: `{
-			"taskDefinition": {
-				"status": "ACTIVE",
-				"family": "convox-myapp-web",
-				"requiresAttributes": [
-					{
-						"name": "com.amazonaws.ecs.capability.ecr-auth"
-					}
-				],
-				"volumes": [],
-				"taskDefinitionArn": "arn:aws:ecs:us-east-1:778743527532:task-definition/convox-myapp-web:34",
-				"containerDefinitions": [
-					{
-						"environment": [
-							{
-								"name": "RELEASE",
-								"value": "R1234"
-							}
-						],
-						"name": "web",
-						"mountPoints": [],
-						"image": "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-myapp-nkdecwppkq:web.BMPBJLITPZT",
-						"cpu": 0,
-						"portMappings": [],
-						"memory": 256,
-						"privileged": false,
-						"essential": true,
-						"volumesFrom": []
-					}
-				],
-				"revision": 34
-			}
 		}`,
 	},
 }

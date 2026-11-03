@@ -1,8 +1,11 @@
 package cache
 
 import (
+	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -120,4 +123,150 @@ func TestClearPrefix(t *testing.T) {
 			require.NotNil(t, data)
 		}
 	}
+}
+
+func noProviderTest(t *testing.T) {
+	t.Setenv("PROVIDER", "")
+
+	require.NoError(t, Clear(t.Name(), "k"))
+	t.Cleanup(func() { require.NoError(t, Clear(t.Name(), "k")) })
+}
+
+func TestFetchCoalesces(t *testing.T) {
+	noProviderTest(t)
+
+	var calls int32
+	release := make(chan struct{})
+	started := make(chan struct{})
+
+	fill := func() (interface{}, bool, error) {
+		if atomic.AddInt32(&calls, 1) == 1 {
+			close(started)
+		}
+		<-release
+		return nil, true, fmt.Errorf("fill failed")
+	}
+
+	errs := make(chan error, 10)
+
+	go func() {
+		_, err := Fetch(t.Name(), "k", time.Minute, fill)
+		errs <- err
+	}()
+
+	<-started
+
+	var entered sync.WaitGroup
+	entered.Add(9)
+
+	for i := 0; i < 9; i++ {
+		go func() {
+			entered.Done()
+			_, err := Fetch(t.Name(), "k", time.Minute, fill)
+			errs <- err
+		}()
+	}
+
+	entered.Wait()
+	time.Sleep(200 * time.Millisecond)
+	close(release)
+
+	for i := 0; i < 10; i++ {
+		require.EqualError(t, <-errs, "fill failed")
+	}
+
+	require.EqualValues(t, 1, atomic.LoadInt32(&calls))
+	require.Nil(t, Get(t.Name(), "k"))
+}
+
+func TestFetchClearDuringFill(t *testing.T) {
+	noProviderTest(t)
+
+	release := make(chan struct{})
+	started := make(chan struct{})
+	done := make(chan interface{})
+
+	go func() {
+		v, err := Fetch(t.Name(), "k", time.Minute, func() (interface{}, bool, error) {
+			close(started)
+			<-release
+			return "old", true, nil
+		})
+		if err != nil {
+			t.Error(err)
+		}
+		done <- v
+	}()
+
+	<-started
+	require.NoError(t, Clear(t.Name(), "k"))
+
+	var calls int32
+	v, err := Fetch(t.Name(), "k", time.Minute, func() (interface{}, bool, error) {
+		atomic.AddInt32(&calls, 1)
+		return "new", true, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, "new", v)
+	require.EqualValues(t, 1, calls)
+
+	close(release)
+	require.Equal(t, "old", <-done)
+	require.Equal(t, "new", Get(t.Name(), "k"))
+}
+
+func TestFetchPanicReleasesKey(t *testing.T) {
+	noProviderTest(t)
+
+	require.Panics(t, func() {
+		_, _ = Fetch(t.Name(), "k", time.Minute, func() (interface{}, bool, error) {
+			panic("boom")
+		})
+	})
+
+	v, err := Fetch(t.Name(), "k", time.Minute, func() (interface{}, bool, error) {
+		return "ok", true, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, "ok", v)
+}
+
+func TestFetchStoreFlag(t *testing.T) {
+	noProviderTest(t)
+
+	var calls int32
+	fill := func(store bool) func() (interface{}, bool, error) {
+		return func() (interface{}, bool, error) {
+			atomic.AddInt32(&calls, 1)
+			return "v", store, nil
+		}
+	}
+
+	_, err := Fetch(t.Name(), "k", time.Minute, fill(false))
+	require.NoError(t, err)
+	require.Nil(t, Get(t.Name(), "k"))
+
+	_, err = Fetch(t.Name(), "k", time.Minute, fill(true))
+	require.NoError(t, err)
+
+	v, err := Fetch(t.Name(), "k", time.Minute, fill(true))
+	require.NoError(t, err)
+	require.Equal(t, "v", v)
+	require.EqualValues(t, 2, calls)
+}
+
+func TestFetchProviderTest(t *testing.T) {
+	t.Setenv("PROVIDER", "test")
+
+	var calls int32
+	for i := 0; i < 2; i++ {
+		v, err := Fetch("TestFetchProviderTest", "k", time.Minute, func() (interface{}, bool, error) {
+			atomic.AddInt32(&calls, 1)
+			return "v", true, nil
+		})
+		require.NoError(t, err)
+		require.Equal(t, "v", v)
+	}
+
+	require.EqualValues(t, 2, calls)
 }

@@ -453,6 +453,16 @@ func (p *Provider) s3() *s3.S3 {
 	return s3.New(s, p.config().WithS3ForcePathStyle(true))
 }
 
+func (p *Provider) s3Streaming() *s3.S3 {
+	s := p.s3()
+
+	if c := helpers.StreamingHTTPClient(); c != nil {
+		s.Config.HTTPClient = c
+	}
+
+	return s
+}
+
 func (p *Provider) sns() *sns.SNS {
 	s, err := helpers.NewSession()
 	if err != nil {

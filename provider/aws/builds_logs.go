@@ -14,7 +14,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/convox/rack/pkg/structs"
@@ -71,6 +70,7 @@ func (p *Provider) waitTaskStopped(app, id, taskArn string, done chan<- struct{}
 
 // followCW streams log events from an AWS CloudWatch Logs log group and log stream.
 func (p *Provider) followCW(app, id, group, stream string, done <-chan struct{}) (io.ReadCloser, error) {
+	ctx := p.Context()
 	cw := p.cwlogs()
 	pr, pw := io.Pipe()
 
@@ -79,7 +79,7 @@ func (p *Provider) followCW(app, id, group, stream string, done <-chan struct{})
 
 		var prevToken, token *string
 		for {
-			out, err := cw.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
+			out, err := cw.GetLogEventsWithContext(ctx, &cloudwatchlogs.GetLogEventsInput{
 				LogGroupName:  aws.String(group),
 				LogStreamName: aws.String(stream),
 				NextToken:     token,
@@ -94,7 +94,9 @@ func (p *Provider) followCW(app, id, group, stream string, done <-chan struct{})
 					return
 				default:
 				}
-				time.Sleep(2 * time.Second)
+				if aws.SleepWithContext(ctx, 2*time.Second) != nil {
+					return
+				}
 				continue
 			}
 			if err != nil {
@@ -104,7 +106,9 @@ func (p *Provider) followCW(app, id, group, stream string, done <-chan struct{})
 
 			// emit any new events
 			for _, e := range out.Events {
-				fmt.Fprintln(pw, aws.StringValue(e.Message))
+				if _, err := fmt.Fprintln(pw, aws.StringValue(e.Message)); err != nil {
+					return
+				}
 			}
 
 			prevToken, token = token, out.NextForwardToken
@@ -119,7 +123,9 @@ func (p *Provider) followCW(app, id, group, stream string, done <-chan struct{})
 				}
 			}
 
-			time.Sleep(2 * time.Second)
+			if aws.SleepWithContext(ctx, 2*time.Second) != nil {
+				return
+			}
 		}
 	}()
 
@@ -209,7 +215,7 @@ func (p *Provider) cwStreamForTask(task *ecs.Task, prefix string) (group, stream
 
 // cwlogs returns a CloudWatch Logs client bound to the rack’s AWS config.
 func (p *Provider) cwlogs() *cloudwatchlogs.CloudWatchLogs {
-	return cloudwatchlogs.New(session.New(), p.config())
+	return p.cloudwatchlogs()
 }
 
 // dockerBuildLogs tails an EC2 build container once its task starts, or returns what the build stored.

@@ -84,7 +84,12 @@ func (p *Provider) appsUsingNLBScheme(scheme string, preserveOnly bool) ([]strin
 		if a.Release == "" {
 			continue
 		}
-		r, err := p.ReleaseGet(a.Name, a.Release)
+		item, err := p.fetchRelease(a.Name, a.Release)
+		if err != nil {
+			log.Logf("warning: skipped app=%s err=%v", a.Name, err)
+			continue
+		}
+		r, err := releaseFromItem(item)
 		if err != nil {
 			log.Logf("warning: skipped app=%s err=%v", a.Name, err)
 			continue

@@ -56,12 +56,21 @@ type FormationResource struct {
 }
 
 func (p *Provider) accountId() (string, error) {
-	res, err := p.sts().GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	v, err := cache.Fetch("accountId", "", 24*time.Hour, func() (interface{}, bool, error) {
+		res, err := p.sts().GetCallerIdentity(&sts.GetCallerIdentityInput{})
+		if err != nil {
+			return nil, false, err
+		}
+
+		return *res.Account, !p.SkipCache, nil
+	})
 	if err != nil {
 		return "", err
 	}
 
-	return *res.Account, nil
+	id, _ := v.(string)
+
+	return id, nil
 }
 
 func awsError(err error) string {
@@ -526,6 +535,14 @@ func (p *Provider) createStack(name string, body []byte, params map[string]strin
 		return err
 	}
 
+	if err := cache.Clear("describeStacks", nil); err != nil {
+		return err
+	}
+
+	if err := cache.Clear("describeStacks", name); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -614,74 +631,51 @@ func (p *Provider) listAndDescribeContainerInstances() (*ecs.DescribeContainerIn
 }
 
 func (p *Provider) describeContainerInstances(input *ecs.DescribeContainerInstancesInput) (*ecs.DescribeContainerInstancesOutput, error) {
-	res, ok := cache.Get("describeContainerInstances", input).(*ecs.DescribeContainerInstancesOutput)
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.ecs().DescribeContainerInstances(input)
-
+	v, err := cache.Fetch("describeContainerInstances", input, 5*time.Second, func() (interface{}, bool, error) {
+		res, err := p.ecs().DescribeContainerInstances(input)
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeContainerInstances", input, res, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*ecs.DescribeContainerInstancesOutput)
 
 	return res, nil
 }
 
 func (p *Provider) describeServices(input *ecs.DescribeServicesInput) (*ecs.DescribeServicesOutput, error) {
-	res, ok := cache.Get("describeServices", input.Services).(*ecs.DescribeServicesOutput)
-
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.ecs().DescribeServices(input)
-
+	v, err := cache.Fetch("describeServices", input.Services, 5*time.Second, func() (interface{}, bool, error) {
+		res, err := p.ecs().DescribeServices(input)
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeServices", input.Services, res, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*ecs.DescribeServicesOutput)
 
 	return res, nil
 }
 
 func (p *Provider) describeStacks(input *cloudformation.DescribeStacksInput) ([]*cloudformation.Stack, error) {
-	var stacks []*cloudformation.Stack
-	stacks, ok := cache.Get("describeStacks", input.StackName).([]*cloudformation.Stack)
+	v, err := cache.Fetch("describeStacks", input.StackName, 5*time.Second, func() (interface{}, bool, error) {
+		var stacks []*cloudformation.Stack
 
-	if ok {
-		return stacks, nil
-	}
+		err := p.cloudformation().DescribeStacksPages(input,
+			func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
+				stacks = append(stacks, page.Stacks...)
+				return true
+			},
+		)
 
-	err := p.cloudformation().DescribeStacksPages(input,
-		func(page *cloudformation.DescribeStacksOutput, lastPage bool) bool {
-			for _, stack := range page.Stacks {
-				stacks = append(stacks, stack)
-			}
-			return true
-		},
-	)
-
+		return stacks, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeStacks", input.StackName, stacks, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	stacks, _ := v.([]*cloudformation.Stack)
 
 	return stacks, nil
 }
@@ -727,43 +721,29 @@ func (p *Provider) describeStackEvents(input *cloudformation.DescribeStackEvents
 func (p *Provider) describeStackResource(input *cloudformation.DescribeStackResourceInput) (*cloudformation.DescribeStackResourceOutput, error) {
 	key := fmt.Sprintf("%s.%s", *input.StackName, *input.LogicalResourceId)
 
-	res, ok := cache.Get("describeStackResource", key).(*cloudformation.DescribeStackResourceOutput)
-
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.cloudformation().DescribeStackResource(input)
+	v, err := cache.Fetch("describeStackResource", key, 5*time.Second, func() (interface{}, bool, error) {
+		res, err := p.cloudformation().DescribeStackResource(input)
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeStackResource", key, res, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*cloudformation.DescribeStackResourceOutput)
 
 	return res, nil
 }
 
 func (p *Provider) describeStackResources(input *cloudformation.DescribeStackResourcesInput) (*cloudformation.DescribeStackResourcesOutput, error) {
-	res, ok := cache.Get("describeStackResources", input.StackName).(*cloudformation.DescribeStackResourcesOutput)
-
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.cloudformation().DescribeStackResources(input)
+	v, err := cache.Fetch("describeStackResources", input.StackName, 5*time.Second, func() (interface{}, bool, error) {
+		res, err := p.cloudformation().DescribeStackResources(input)
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeStackResources", input.StackName, res, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*cloudformation.DescribeStackResourcesOutput)
 
 	return res, nil
 }
@@ -783,37 +763,35 @@ func (p *Provider) stackTemplate(stack string) ([]byte, error) {
 }
 
 func (p *Provider) listStackResources(stack string) ([]*cloudformation.StackResourceSummary, error) {
-	res, ok := cache.Get("listStackResources", stack).([]*cloudformation.StackResourceSummary)
-	if ok {
-		return res, nil
-	}
-
-	req := &cloudformation.ListStackResourcesInput{
-		StackName: aws.String(stack),
-	}
-
-	srs := []*cloudformation.StackResourceSummary{}
-
-	for {
-		res, err := p.cloudformation().ListStackResources(req)
-		if err != nil {
-			return nil, err
+	v, err := cache.Fetch("listStackResources", stack, 5*time.Second, func() (interface{}, bool, error) {
+		req := &cloudformation.ListStackResourcesInput{
+			StackName: aws.String(stack),
 		}
 
-		srs = append(srs, res.StackResourceSummaries...)
+		srs := []*cloudformation.StackResourceSummary{}
 
-		if res.NextToken == nil {
-			break
+		for {
+			res, err := p.cloudformation().ListStackResources(req)
+			if err != nil {
+				return nil, false, err
+			}
+
+			srs = append(srs, res.StackResourceSummaries...)
+
+			if res.NextToken == nil {
+				break
+			}
+
+			req.NextToken = res.NextToken
 		}
 
-		req.NextToken = res.NextToken
+		return srs, !p.SkipCache, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("listStackResources", stack, srs, 5*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	srs, _ := v.([]*cloudformation.StackResourceSummary)
 
 	return srs, nil
 }
@@ -934,7 +912,13 @@ func (p *Provider) dockerContainerFromPid(pid string) (*docker.Container, error)
 		return nil, err
 	}
 
+	return p.dockerContainer(dc, arn)
+}
+
+func (p *Provider) dockerContainer(dc *docker.Client, arn string) (*docker.Container, error) {
 	tries := 0
+
+	var err error
 
 	var cs []docker.APIContainers
 
@@ -978,6 +962,10 @@ func (p *Provider) dockerClientFromPid(pid string) (*docker.Client, error) {
 		return nil, err
 	}
 
+	return p.dockerClientForTask(arn, pid)
+}
+
+func (p *Provider) dockerClientForTask(arn, pid string) (*docker.Client, error) {
 	task, err := p.describeTask(arn)
 	if err != nil {
 		return nil, err
@@ -1010,68 +998,51 @@ func (p *Provider) dockerClientFromPid(pid string) (*docker.Client, error) {
 }
 
 func (p *Provider) describeTaskDefinition(input *ecs.DescribeTaskDefinitionInput) (*ecs.DescribeTaskDefinitionOutput, error) {
-	td, ok := cache.Get("describeTaskDefinition", input).(*ecs.DescribeTaskDefinitionOutput)
-	if ok {
-		return td, nil
-	}
+	v, err := cache.Fetch("describeTaskDefinition", input, 24*time.Hour, func() (interface{}, bool, error) {
+		res, err := p.ecs().DescribeTaskDefinition(input)
+		if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
+			return nil, false, fmt.Errorf("task definition not found: %s", *input.TaskDefinition)
+		}
 
-	res, err := p.ecs().DescribeTaskDefinition(input)
-	if ae, ok := err.(awserr.Error); ok && ae.Code() == "ValidationError" {
-		return nil, fmt.Errorf("task definition not found: %s", *input.TaskDefinition)
-	}
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("describeTaskDefinition", input, res, 24*time.Hour); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*ecs.DescribeTaskDefinitionOutput)
 
 	return res, nil
 }
 
 func (p *Provider) describeTasks(input *ecs.DescribeTasksInput) (*ecs.DescribeTasksOutput, error) {
-	res, ok := cache.Get("describeTasks", input).(*ecs.DescribeTasksOutput)
+	v, err := cache.Fetch("describeTasks", input, 10*time.Second, func() (interface{}, bool, error) {
+		res, err := p.ecs().DescribeTasks(input)
+		if err != nil {
+			return nil, false, err
+		}
 
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.ecs().DescribeTasks(input)
-
+		return res, !p.SkipCache && len(res.Failures) == 0, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache && len(res.Failures) == 0 {
-		if err := cache.Set("describeTasks", input, res, 10*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*ecs.DescribeTasksOutput)
 
 	return res, nil
 }
 
 func (p *Provider) listContainerInstances(input *ecs.ListContainerInstancesInput) (*ecs.ListContainerInstancesOutput, error) {
-	res, ok := cache.Get("listContainerInstances", input).(*ecs.ListContainerInstancesOutput)
-
-	if ok {
-		return res, nil
-	}
-
-	res, err := p.ecs().ListContainerInstances(input)
-
+	v, err := cache.Fetch("listContainerInstances", input, 10*time.Second, func() (interface{}, bool, error) {
+		res, err := p.ecs().ListContainerInstances(input)
+		return res, !p.SkipCache, err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if !p.SkipCache {
-		if err := cache.Set("listContainerInstances", input, res, 10*time.Second); err != nil {
-			return nil, err
-		}
-	}
+	res, _ := v.(*ecs.ListContainerInstancesOutput)
 
 	return res, nil
 }

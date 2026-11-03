@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -87,7 +88,9 @@ func TestBuildCreateError(t *testing.T) {
 
 func TestBuildExport(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
+		flusher := false
 		p.On("BuildExport", "app1", "build1", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			_, flusher = args.Get(2).(http.Flusher)
 			args.Get(2).(io.Writer).Write([]byte("data"))
 		})
 		res, err := c.GetStream("/apps/app1/builds/build1.tgz", stdsdk.RequestOptions{})
@@ -96,6 +99,7 @@ func TestBuildExport(t *testing.T) {
 		data, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
 		require.Equal(t, "data", string(data))
+		require.True(t, flusher)
 	})
 }
 
