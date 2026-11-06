@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/convox/logger"
 	"github.com/convox/rack/pkg/helpers"
 	"github.com/convox/rack/pkg/manifest"
 	"github.com/convox/rack/pkg/manifest1"
@@ -41,6 +44,8 @@ var regexpStackID = regexp.MustCompile(`arn:[^:]+:cloudformation:([^.]+):(\d+):s
 
 // buildWatchers lets tests join the goroutines runBuild starts.
 var buildWatchers sync.WaitGroup
+
+var exportKeepalive = 15 * time.Second
 
 func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
@@ -149,6 +154,8 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return fmt.Errorf("no services found to export")
 	}
 
+	sort.Strings(services)
+
 	bjson, err := json.MarshalIndent(build, "", "  ")
 	if err != nil {
 		return err
@@ -158,6 +165,26 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	if err != nil {
 		log.Error(err)
 		return err
+	}
+
+	images := []string{}
+
+	for _, service := range services {
+		tag := fmt.Sprintf("%s.%s", service, build.Id)
+
+		_, err := p.ecr().DescribeImages(&ecr.DescribeImagesInput{
+			ImageIds:       []*ecr.ImageIdentifier{{ImageTag: aws.String(tag)}},
+			RegistryId:     aws.String(repo.ID),
+			RepositoryName: aws.String(repo.Name),
+		})
+		if awsError(err) == ecr.ErrCodeImageNotFoundException {
+			return log.Error(fmt.Errorf("image not found: %s:%s", repo.URI, tag))
+		}
+		if err != nil {
+			return log.Error(err)
+		}
+
+		images = append(images, fmt.Sprintf("%s:%s", repo.URI, tag))
 	}
 
 	if err := p.dockerLogin(); err != nil {
@@ -172,12 +199,6 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	}
 
 	defer func() { _ = os.RemoveAll(tmp) }()
-
-	images := []string{}
-
-	for _, service := range services {
-		images = append(images, fmt.Sprintf("%s:%s.%s", repo.URI, service, build.Id))
-	}
 
 	present, err := dockerImages()
 	if err != nil {
@@ -194,60 +215,24 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 
 	defer dockerRemove(added)
 
-	errch := make(chan error, len(images))
-
-	for _, image := range images {
-		log.Step("pull").Logf("image=%q", image)
-
-		go func(img string) {
-			out, err := exec.Command("docker", "pull", img).CombinedOutput()
-			if err != nil {
-				errch <- fmt.Errorf("%s: %s\n", lastline(out), err.Error())
-				return
-			}
-
-			errch <- nil
-		}(image)
+	if hw, ok := w.(interface{ WriteHeader(int) }); ok {
+		hw.WriteHeader(http.StatusOK)
 	}
-
-	var pullErr error
-
-	for range images {
-		if err := <-errch; err != nil && pullErr == nil {
-			pullErr = err
-		}
-	}
-
-	if pullErr != nil {
-		return pullErr
-	}
-
-	name := fmt.Sprintf("%s.%s.tar", app, build.Id)
-	file := filepath.Join(tmp, name)
-	args := []string{"save", "-o", file}
-	args = append(args, images...)
-
-	log.Step("save").Logf("file=%q images=%d", file, len(images))
-	out, err := exec.Command("docker", args...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s: %s\n", strings.TrimSpace(string(out)), err.Error())
-	}
-
-	stat, err := os.Stat(file)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	fd, err := os.Open(file)
-	if err != nil {
-		return log.Error(err)
-	}
-
-	defer func() { _ = fd.Close() }()
 
 	gz := gzip.NewWriter(w)
 	tw := tar.NewWriter(gz)
+
+	flush := func() error {
+		if err := gz.Flush(); err != nil {
+			return err
+		}
+
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		return nil
+	}
 
 	dataHeader := &tar.Header{
 		Typeflag: tar.TypeReg,
@@ -269,13 +254,54 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 		return log.Error(err)
 	}
 
-	if err := gz.Flush(); err != nil {
+	if err := flush(); err != nil {
 		return log.Error(err)
 	}
 
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
+	name := fmt.Sprintf("%s.%s.tar", app, build.Id)
+	file := filepath.Join(tmp, name)
+
+	ctx, cancel := context.WithCancel(p.Context())
+	defer cancel()
+
+	done := make(chan error, 1)
+
+	go func() { done <- exportImages(ctx, log, images, file) }()
+
+	tick := time.NewTicker(exportKeepalive)
+	defer tick.Stop()
+
+wait:
+	for {
+		select {
+		case err := <-done:
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
+			if err != nil {
+				return log.Error(err)
+			}
+			break wait
+		case <-tick.C:
+			if err := flush(); err != nil {
+				cancel()
+				<-done
+				return log.Error(err)
+			}
+		}
 	}
+
+	stat, err := os.Stat(file)
+	if err != nil {
+		return log.Error(err)
+	}
+
+	fd, err := os.Open(file)
+	if err != nil {
+		return log.Error(err)
+	}
+
+	defer func() { _ = fd.Close() }()
 
 	header := &tar.Header{
 		Typeflag: tar.TypeReg,
@@ -306,6 +332,47 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 	}
 
 	log.Success()
+	return nil
+}
+
+func exportImages(ctx context.Context, log *logger.Logger, images []string, file string) error {
+	errch := make(chan error, len(images))
+
+	for _, image := range images {
+		log.Step("pull").Logf("image=%q", image)
+
+		go func(img string) {
+			out, err := exec.CommandContext(ctx, "docker", "pull", img).CombinedOutput()
+			if err != nil {
+				errch <- fmt.Errorf("%s: %s", lastline(out), err.Error())
+				return
+			}
+
+			errch <- nil
+		}(image)
+	}
+
+	var pullErr error
+
+	for range images {
+		if err := <-errch; err != nil && pullErr == nil {
+			pullErr = err
+		}
+	}
+
+	if pullErr != nil {
+		return pullErr
+	}
+
+	args := []string{"save", "-o", file}
+	args = append(args, images...)
+
+	log.Step("save").Logf("file=%q images=%d", file, len(images))
+	out, err := exec.CommandContext(ctx, "docker", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s", strings.TrimSpace(string(out)), err.Error())
+	}
+
 	return nil
 }
 

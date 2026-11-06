@@ -52,9 +52,11 @@ type fakeDocker struct {
 	images []string
 	fail   map[string]bool
 	slow   map[string]time.Duration
+	hold   map[string]chan struct{}
 
 	mu    sync.Mutex
 	calls []string
+	held  int
 }
 
 func (f *fakeDocker) start(t *testing.T) {
@@ -75,6 +77,13 @@ func (f *fakeDocker) Calls() []string {
 	defer f.mu.Unlock()
 
 	return append([]string{}, f.calls...)
+}
+
+func (f *fakeDocker) Held() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	return f.held
 }
 
 func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +124,17 @@ func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	time.Sleep(f.slow[call])
+
+	if ch := f.hold[strings.Fields(call)[0]]; ch != nil {
+		f.mu.Lock()
+		f.held++
+		f.mu.Unlock()
+
+		select {
+		case <-ch:
+		case <-r.Context().Done():
+		}
+	}
 
 	f.mu.Lock()
 	f.calls = append(f.calls, call)

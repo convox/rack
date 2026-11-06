@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/convox/logger"
+	"github.com/convox/rack/pkg/api"
 	"github.com/convox/rack/pkg/options"
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/stdsdk"
@@ -131,6 +134,53 @@ func TestBuildGetError(t *testing.T) {
 		require.Nil(t, b1)
 		require.EqualError(t, err, "err1")
 	})
+}
+
+func TestBuildExportStarted(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		read error
+	}{
+		{"success", nil, nil},
+		{"error", fmt.Errorf("err1"), io.ErrUnexpectedEOF},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := &structs.MockProvider{}
+			p.On("Initialize", mock.Anything).Return(nil)
+			p.On("WithContext", mock.Anything).Return(p)
+			p.On("SystemJwtSignKey").Return("", nil)
+			p.On("BuildExport", "app1", "build1", mock.Anything).Return(tc.err).Run(func(args mock.Arguments) {
+				w := args.Get(2).(http.ResponseWriter)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("data"))
+				w.(http.Flusher).Flush()
+			})
+
+			s := api.NewWithProvider(p)
+			s.Logger = logger.Discard
+
+			ht := httptest.NewServer(s)
+			defer ht.Close()
+
+			c, err := stdsdk.New(ht.URL)
+			require.NoError(t, err)
+
+			res, err := c.GetStream("/apps/app1/builds/build1.tgz", stdsdk.RequestOptions{})
+			require.NoError(t, err)
+			defer func() { _ = res.Body.Close() }()
+
+			data, err := io.ReadAll(res.Body)
+			if tc.read == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, tc.read)
+			}
+			require.Equal(t, "data", string(data))
+
+			p.AssertExpectations(t)
+		})
+	}
 }
 
 func TestBuildImport(t *testing.T) {
