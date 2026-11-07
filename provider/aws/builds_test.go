@@ -4,15 +4,22 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/convox/rack/pkg/structs"
 	"github.com/convox/rack/pkg/test/awsutil"
+	"github.com/convox/rack/provider/aws"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -137,15 +144,115 @@ func TestBuildGet(t *testing.T) {
 //   }, b)
 // }
 
-type flushRecorder struct {
-	bytes.Buffer
-	flushes   int
-	flushedAt int
+type streamRecorder struct {
+	failAfterFlush bool
+	block          chan struct{}
+
+	mu      sync.Mutex
+	blocked bool
+	buf     bytes.Buffer
+	header  http.Header
+	codes   []int
+	flushes []int
+	events  []string
 }
 
-func (f *flushRecorder) Flush() {
-	f.flushes++
-	f.flushedAt = f.Len()
+func (r *streamRecorder) Header() http.Header {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.header == nil {
+		r.header = http.Header{}
+	}
+
+	return r.header
+}
+
+func (r *streamRecorder) Write(p []byte) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.failAfterFlush && len(r.flushes) > 0 {
+		return 0, fmt.Errorf("broken pipe")
+	}
+
+	if r.block != nil && len(r.flushes) > 0 {
+		r.blocked = true
+		r.mu.Unlock()
+		<-r.block
+		r.mu.Lock()
+	}
+
+	return r.buf.Write(p)
+}
+
+func (r *streamRecorder) WriteHeader(code int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.codes = append(r.codes, code)
+	r.events = append(r.events, "header "+r.header.Get("Content-Type"))
+}
+
+func (r *streamRecorder) event(e string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.events = append(r.events, e)
+}
+
+func (r *streamRecorder) Blocked() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.blocked
+}
+
+func (r *streamRecorder) Events() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return append([]string{}, r.events...)
+}
+
+func (r *streamRecorder) Flush() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.flushes = append(r.flushes, r.buf.Len())
+}
+
+func (r *streamRecorder) snapshot() ([]byte, []int, []int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return append([]byte{}, r.buf.Bytes()...), append([]int{}, r.codes...), append([]int{}, r.flushes...)
+}
+
+func exportEntries(data []byte) ([]string, error) {
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	tr := tar.NewReader(gz)
+	names := []string{}
+
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			return names, nil
+		}
+		if err != nil {
+			return names, err
+		}
+
+		names = append(names, h.Name)
+
+		if _, err := io.Copy(io.Discard, tr); err != nil {
+			return names, err
+		}
+	}
 }
 
 func TestBuildExport(t *testing.T) {
@@ -154,6 +261,7 @@ func TestBuildExport(t *testing.T) {
 		cycleBuildDescribeStacks,
 		cycleBuildDescribeStacks,
 		cycleBuildDescribeRepositories,
+		cycleBuildDescribeImagesWeb,
 		cycleBuildGetAuthorizationToken,
 	)
 	defer provider.Close()
@@ -167,14 +275,17 @@ func TestBuildExport(t *testing.T) {
 	)
 	defer d.Close()
 
-	buf := &flushRecorder{}
+	rec := &streamRecorder{}
 
-	err := provider.BuildExport("httpd", "B123", buf)
+	err := provider.BuildExport("httpd", "B123", rec)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, buf.flushes)
-	assert.Greater(t, buf.flushedAt, 0)
 
-	gz, err := gzip.NewReader(buf)
+	out, codes, flushes := rec.snapshot()
+	assert.Equal(t, []int{200}, codes)
+	require.Len(t, flushes, 1)
+	assert.Greater(t, flushes[0], 0)
+
+	gz, err := gzip.NewReader(bytes.NewReader(out))
 	assert.NoError(t, err)
 
 	tr := tar.NewReader(gz)
@@ -203,109 +314,6 @@ func TestBuildExport(t *testing.T) {
 	assert.Equal(t, io.EOF, err)
 	assert.Nil(t, h)
 }
-
-// cycleSystemDescribeStackResources,
-// func TestBuildImport(t *testing.T) {
-//   provider := StubAwsProvider(
-//     cycleBuildDescribeStacks,
-//     cycleBuildDescribeRepositories,
-//     cycleBuildGetAuthorizationToken,
-//     cycleBuildGetNoItem,
-//     cycleBuildDescribeStacks,
-//     cycleReleaseDescribeStackResources,
-//     cycleEnvironmentGet,
-//     cycleSystemDescribeStackResources,
-//     cycleBuildDescribeStacks,
-//     cycleBuildPutItem,
-//     cycleSystemDescribeStackResources,
-//     // cycleBuildDescribeStacks,
-//     // cycleReleaseDescribeStackResources,
-//     // cycleEnvironmentPut,
-//     // cycleBuildReleasePutItem,
-//   )
-//   defer provider.Close()
-
-//   d := stubDocker(
-//     cycleBuildDockerPing,
-//     cycleBuildDockerInfo,
-//     cycleBuildDockerLogin,
-//     cycleBuildDockerPing,
-//     cycleBuildDockerLoad,
-//     cycleBuildDockerPing,
-//     cycleBuildDockerTag,
-//     cycleBuildDockerPing,
-//     cycleBuildDockerPush,
-//   )
-//   defer d.Close()
-
-//   build := &structs.Build{
-//     Id:      "B12345",
-//     App:     "httpd",
-//     Release: "R23456",
-//   }
-
-//   data, err := json.Marshal(build)
-//   require.NoError(t, err)
-
-//   buf := &bytes.Buffer{}
-
-//   gz := gzip.NewWriter(buf)
-//   tw := tar.NewWriter(gz)
-
-//   err = tw.WriteHeader(&tar.Header{
-//     Typeflag: tar.TypeReg,
-//     Name:     "build.json",
-//     Size:     int64(len(data)),
-//   })
-//   require.NoError(t, err)
-
-//   n, err := tw.Write(data)
-//   require.NoError(t, err)
-//   assert.Equal(t, 177, n)
-
-//   lbuf := &bytes.Buffer{}
-
-//   ltw := tar.NewWriter(lbuf)
-
-//   data = []byte(`[{"RepoTags":["12345.dkr.ecr.us-east-1.amazonaws.com/convox-httpd-aaaaaaa:web.BRZMXKKHCMR"]}]`)
-
-//   err = ltw.WriteHeader(&tar.Header{
-//     Typeflag: tar.TypeReg,
-//     Name:     "manifest.json",
-//     Size:     int64(len(data)),
-//   })
-//   require.NoError(t, err)
-
-//   n, err = ltw.Write(data)
-//   require.NoError(t, err)
-//   assert.Equal(t, 93, n)
-
-//   err = ltw.Close()
-//   require.NoError(t, err)
-
-//   err = tw.WriteHeader(&tar.Header{
-//     Typeflag: tar.TypeReg,
-//     Name:     "httpd.B12345.tar",
-//     Size:     int64(lbuf.Len()),
-//   })
-//   require.NoError(t, err)
-
-//   n, err = tw.Write(lbuf.Bytes())
-//   require.NoError(t, err)
-//   assert.Equal(t, 2048, n)
-
-//   err = tw.Close()
-//   require.NoError(t, err)
-
-//   err = gz.Close()
-//   require.NoError(t, err)
-
-//   build, err = provider.BuildImport("httpd", buf)
-//   require.NoError(t, err)
-//   assert.Equal(t, "B12345", build.Id)
-//   assert.Equal(t, "httpd", build.App)
-//   assert.Equal(t, "R23456", build.Release)
-// }
 
 // func TestBuildList(t *testing.T) {
 //   provider := StubAwsProvider(
@@ -1527,12 +1535,29 @@ const (
 	importWorker = "123456789012.dkr.ecr.us-east-1.amazonaws.com/convox-other-aaaaaaa:worker.BSOURCE"
 )
 
+var cycleBuildDescribeImagesWeb = cycleBuildDescribeImages("web.BAFVEWUCAYT", 200, `{"imageDetails":[{"imageTags":["web.BAFVEWUCAYT","worker.BAFVEWUCAYT"]}]}`)
+var cycleBuildDescribeImagesWorker = cycleBuildDescribeImages("worker.BAFVEWUCAYT", 200, `{"imageDetails":[{"imageTags":["web.BAFVEWUCAYT","worker.BAFVEWUCAYT"]}]}`)
+var cycleBuildDescribeImagesWorkerMissing = cycleBuildDescribeImages("worker.BAFVEWUCAYT", 400, `{"__type":"ImageNotFoundException","message":"The image with imageId {imageDigest:'null', imageTag:'worker.BAFVEWUCAYT'} does not exist"}`)
+
+func cycleBuildDescribeImages(tag string, status int, body string) awsutil.Cycle {
+	return awsutil.Cycle{
+		Request: awsutil.Request{
+			RequestURI: "/",
+			Operation:  "AmazonEC2ContainerRegistry_V20150921.DescribeImages",
+			Body:       `{"imageIds":[{"imageTag":"` + tag + `"}],"registryId":"778743527532","repositoryName":"convox-httpd-hqvvfosgxt"}`,
+		},
+		Response: awsutil.Response{StatusCode: status, Body: body},
+	}
+}
+
 func exportProvider(t *testing.T) *AwsStub {
 	p := StubAwsProvider(
 		cycleBuildGetItemTwoServices,
 		cycleBuildDescribeStacks,
 		cycleBuildDescribeStacks,
 		cycleBuildDescribeRepositories,
+		cycleBuildDescribeImagesWeb,
+		cycleBuildDescribeImagesWorker,
 		cycleBuildGetAuthorizationToken,
 	)
 	t.Cleanup(p.Close)
@@ -1553,36 +1578,57 @@ func importProvider(t *testing.T) *AwsStub {
 }
 
 func importArchive(t *testing.T, manifest string) io.Reader {
+	data, _ := importTarball(t, importBuild, manifest, 0)
+
+	return bytes.NewReader(data)
+}
+
+func importTarball(t *testing.T, build, manifest string, blob int) ([]byte, int) {
+	t.Helper()
+
 	image := &bytes.Buffer{}
 	itw := tar.NewWriter(image)
 
+	layer := make([]byte, blob)
+	_, _ = rand.New(rand.NewSource(1)).Read(layer)
+
+	files := []struct{ name, data string }{{"blobs/sha256/layer", string(layer)}}
+
 	if manifest != "" {
-		require.NoError(t, itw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "manifest.json", Mode: 0600, Size: int64(len(manifest))}))
-		_, err := itw.Write([]byte(manifest))
+		files = append(files, struct{ name, data string }{"manifest.json", manifest}, struct{ name, data string }{"repositories", "{}"})
+	}
+
+	for _, f := range files {
+		require.NoError(t, itw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: f.name, Mode: 0600, Size: int64(len(f.data))}))
+		_, err := itw.Write([]byte(f.data))
 		require.NoError(t, err)
 	}
 
 	require.NoError(t, itw.Close())
 
-	build := `{"id":"BSOURCE","app":"other"}`
-
 	buf := &bytes.Buffer{}
 	gz := gzip.NewWriter(buf)
 	tw := tar.NewWriter(gz)
 
-	require.NoError(t, tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "build.json", Mode: 0600, Size: int64(len(build))}))
-	_, err := tw.Write([]byte(build))
-	require.NoError(t, err)
+	if build != "" {
+		require.NoError(t, tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "build.json", Mode: 0600, Size: int64(len(build))}))
+		_, err := tw.Write([]byte(build))
+		require.NoError(t, err)
+	}
 
 	require.NoError(t, tw.WriteHeader(&tar.Header{Typeflag: tar.TypeReg, Name: "other.BSOURCE.tar", Mode: 0600, Size: int64(image.Len())}))
-	_, err = tw.Write(image.Bytes())
+	_, err := tw.Write(image.Bytes())
 	require.NoError(t, err)
 
 	require.NoError(t, tw.Close())
 	require.NoError(t, gz.Close())
 
-	return buf
+	return buf.Bytes(), image.Len()
 }
+
+const importTarget = "778743527532.dkr.ecr.us-east-1.amazonaws.com/convox-rails-sslibosttb"
+
+const importBuild = `{"id":"BSOURCE","app":"other","git-sha":"abc123","manifest":"services: {}"}`
 
 const importManifest = `[{"Config":"config.json","RepoTags":["` + importWeb + `","` + importWorker + `"],"Layers":[]}]`
 
@@ -1623,7 +1669,10 @@ func TestBuildExportPullErrorWaitsForPulls(t *testing.T) {
 	buf := &bytes.Buffer{}
 
 	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
-	require.Zero(t, buf.Len())
+
+	names, err := exportEntries(buf.Bytes())
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	require.Equal(t, []string{"build.json"}, names)
 
 	calls := d.Calls()
 	require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, calls[len(calls)-2:])
@@ -1641,7 +1690,10 @@ func TestBuildExportSaveError(t *testing.T) {
 	buf := &bytes.Buffer{}
 
 	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
-	require.Zero(t, buf.Len())
+
+	names, err := exportEntries(buf.Bytes())
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	require.Equal(t, []string{"build.json"}, names)
 
 	calls := d.Calls()
 	require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, calls[len(calls)-2:])
@@ -1655,11 +1707,197 @@ func TestBuildExportListError(t *testing.T) {
 	d := &fakeDocker{fail: map[string]bool{"images": true}}
 	d.start(t)
 
-	buf := &bytes.Buffer{}
+	rec := &streamRecorder{}
 
-	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", buf))
-	require.Zero(t, buf.Len())
+	require.Error(t, exportProvider(t).BuildExport("httpd", "B123", rec))
+
+	data, codes, flushes := rec.snapshot()
+	require.Empty(t, data)
+	require.Empty(t, codes)
+	require.Empty(t, flushes)
 	require.Equal(t, []string{"login", "images"}, d.Calls())
+}
+
+func exportAsync(p interface {
+	BuildExport(string, string, io.Writer) error
+}, w io.Writer) <-chan error {
+	errc := make(chan error, 1)
+
+	go func() { errc <- p.BuildExport("httpd", "B123", w) }()
+
+	return errc
+}
+
+func waitReturn(t *testing.T, errc <-chan error) error {
+	t.Helper()
+
+	select {
+	case err := <-errc:
+		return err
+	case <-time.After(20 * time.Second):
+		t.Fatal("did not return")
+		return nil
+	}
+}
+
+func shortKeepalive(t *testing.T) {
+	old := *aws.BuildKeepalive
+	*aws.BuildKeepalive = 5 * time.Millisecond
+	t.Cleanup(func() { *aws.BuildKeepalive = old })
+}
+
+func TestBuildExportHeadersBeforePull(t *testing.T) {
+	release := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"pull": release}}
+	d.start(t)
+
+	rec := &streamRecorder{}
+	errc := exportAsync(exportProvider(t), rec)
+
+	require.Eventually(t, func() bool { return d.Held() == 2 }, 20*time.Second, 10*time.Millisecond)
+
+	data, codes, flushes := rec.snapshot()
+	require.Equal(t, []int{200}, codes)
+	require.NotEmpty(t, flushes)
+
+	names, err := exportEntries(data)
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+	require.Equal(t, []string{"build.json"}, names)
+	require.NotContains(t, d.Calls(), "save")
+
+	close(release)
+	require.NoError(t, waitReturn(t, errc))
+
+	data, _, _ = rec.snapshot()
+	names, err = exportEntries(data)
+	require.NoError(t, err)
+	require.Equal(t, []string{"build.json", "httpd.BAFVEWUCAYT.tar"}, names)
+}
+
+func TestBuildExportKeepalive(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"pull": release}}
+	d.start(t)
+
+	rec := &streamRecorder{}
+	errc := exportAsync(exportProvider(t), rec)
+
+	require.Eventually(t, func() bool {
+		_, _, flushes := rec.snapshot()
+		return d.Held() == 2 && len(flushes) >= 3
+	}, 20*time.Second, 10*time.Millisecond)
+
+	close(release)
+	require.NoError(t, waitReturn(t, errc))
+
+	data, _, flushes := rec.snapshot()
+	for i := 1; i < len(flushes); i++ {
+		require.Greater(t, flushes[i], flushes[i-1], "flush %d sent no bytes", i)
+	}
+
+	names, err := exportEntries(data)
+	require.NoError(t, err)
+	require.Equal(t, []string{"build.json", "httpd.BAFVEWUCAYT.tar"}, names)
+}
+
+func TestBuildExportMissingImage(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	p := StubAwsProvider(
+		cycleBuildGetItemTwoServices,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeRepositories,
+		cycleBuildDescribeImagesWeb,
+		cycleBuildDescribeImagesWorkerMissing,
+	)
+	t.Cleanup(p.Close)
+
+	rec := &streamRecorder{}
+
+	require.EqualError(t, p.BuildExport("httpd", "B123", rec), "image not found: "+exportWorker)
+
+	data, codes, flushes := rec.snapshot()
+	require.Empty(t, data)
+	require.Empty(t, codes)
+	require.Empty(t, flushes)
+	require.Empty(t, d.Calls())
+}
+
+func TestBuildExportDescribeImagesError(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	p := StubAwsProvider(
+		cycleBuildGetItemTwoServices,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeRepositories,
+		cycleBuildDescribeImagesWeb,
+		cycleBuildDescribeImages("worker.BAFVEWUCAYT", 400, `{"__type":"AccessDeniedException","message":"denied"}`),
+		cycleBuildGetAuthorizationToken,
+	)
+	t.Cleanup(p.Close)
+
+	rec := &streamRecorder{}
+
+	require.ErrorContains(t, p.BuildExport("httpd", "B123", rec), "AccessDeniedException")
+
+	data, codes, flushes := rec.snapshot()
+	require.Empty(t, data)
+	require.Empty(t, codes)
+	require.Empty(t, flushes)
+	require.Empty(t, d.Calls())
+}
+
+func TestBuildExportCancel(t *testing.T) {
+	for _, tc := range []struct {
+		kind string
+		held int
+	}{{"pull", 2}, {"save", 1}} {
+		t.Run(tc.kind, func(t *testing.T) {
+			d := &fakeDocker{hold: map[string]chan struct{}{tc.kind: make(chan struct{})}}
+			d.start(t)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			rec := &streamRecorder{}
+			errc := exportAsync(exportProvider(t).WithContext(ctx), rec)
+
+			require.Eventually(t, func() bool { return d.Held() == tc.held }, 20*time.Second, 10*time.Millisecond)
+
+			cancel()
+			require.ErrorIs(t, waitReturn(t, errc), context.Canceled)
+
+			data, _, _ := rec.snapshot()
+			names, err := exportEntries(data)
+			require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+			require.Equal(t, []string{"build.json"}, names)
+
+			require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, callsWithPrefix(d.Calls(), "rmi "))
+		})
+	}
+}
+
+func TestBuildExportKeepaliveWriteError(t *testing.T) {
+	shortKeepalive(t)
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"pull": make(chan struct{})}}
+	d.start(t)
+
+	rec := &streamRecorder{failAfterFlush: true}
+
+	require.EqualError(t, waitReturn(t, exportAsync(exportProvider(t), rec)), "broken pipe")
+
+	calls := d.Calls()
+	require.NotContains(t, calls, "save")
+	require.ElementsMatch(t, []string{"rmi " + exportWeb, "rmi " + exportWorker}, callsWithPrefix(calls, "rmi "))
 }
 
 func TestBuildImportRemovesAddedImages(t *testing.T) {
@@ -1711,4 +1949,422 @@ func TestBuildImportManifestError(t *testing.T) {
 	_, err := importProvider(t).BuildImport("httpd", importArchive(t, ""))
 	require.EqualError(t, err, "unable to locate manifest")
 	require.Contains(t, d.Calls(), "load")
+}
+
+type importRequest struct {
+	*streamRecorder
+	body     io.Reader
+	eofDelay time.Duration
+}
+
+func newImportRequest(data []byte) importRequest {
+	return importRequest{streamRecorder: &streamRecorder{}, body: bytes.NewReader(data)}
+}
+
+func (r importRequest) Read(p []byte) (int, error) {
+	n, err := r.body.Read(p)
+	if err == io.EOF {
+		time.Sleep(r.eofDelay)
+		r.event("eof")
+	}
+
+	return n, err
+}
+
+func importAsync(p interface {
+	BuildImport(string, io.Reader) (*structs.Build, error)
+}, r io.Reader) <-chan error {
+	errc := make(chan error, 1)
+
+	go func() {
+		_, err := p.BuildImport("httpd", r)
+		errc <- err
+	}()
+
+	return errc
+}
+
+func importTargets(calls []string) []string {
+	targets := []string{}
+
+	for _, c := range callsWithPrefix(calls, "tag ") {
+		targets = append(targets, "rmi "+strings.TrimPrefix(c, "tag "))
+	}
+
+	return targets
+}
+
+func requestsWithPrefix(p *AwsStub, prefix string) []string {
+	return callsWithPrefix(p.Requests(), prefix)
+}
+
+func TestBuildImportBodyBeforeHeaders(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"load": release}}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := newImportRequest(data)
+	req.eofDelay = 50 * time.Millisecond
+	errc := importAsync(importProvider(t), req)
+
+	require.Eventually(t, func() bool {
+		_, codes, flushes := req.snapshot()
+		return len(codes) == 1 && len(flushes) > 0 && d.Held() == 1
+	}, 20*time.Second, 10*time.Millisecond)
+
+	require.NotContains(t, d.Calls(), "load")
+	require.Equal(t, []string{"eof", "header application/json"}, req.Events())
+
+	close(release)
+	require.Error(t, waitReturn(t, errc))
+}
+
+func TestBuildImportKeepalive(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"push": release}}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := newImportRequest(data)
+	errc := importAsync(importProvider(t), req)
+
+	require.Eventually(t, func() bool {
+		_, _, flushes := req.snapshot()
+		return len(flushes) >= 3
+	}, 20*time.Second, 10*time.Millisecond)
+
+	close(release)
+	require.Error(t, waitReturn(t, errc))
+
+	out, codes, flushes := req.snapshot()
+	require.Equal(t, []int{200}, codes)
+	require.Equal(t, strings.Repeat(" ", len(out)), string(out))
+	require.Never(t, func() bool {
+		later, _, _ := req.snapshot()
+		return len(later) != len(out)
+	}, 50*time.Millisecond, 5*time.Millisecond)
+
+	for i, n := range flushes {
+		require.Equal(t, i+1, n)
+	}
+}
+
+func TestBuildImportKeepaliveDuringRemoval(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"rmi": release}}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := newImportRequest(data)
+	errc := importAsync(importProvider(t), req)
+
+	require.Eventually(t, func() bool { return d.Held() == 1 }, 20*time.Second, 10*time.Millisecond)
+
+	_, _, flushes := req.snapshot()
+	require.Eventually(t, func() bool {
+		_, _, now := req.snapshot()
+		return len(now) > len(flushes)+2
+	}, 20*time.Second, 10*time.Millisecond)
+
+	close(release)
+	require.Error(t, waitReturn(t, errc))
+}
+
+func TestBuildImportKeepaliveJoined(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+	block := make(chan struct{})
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"push": release}}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := importRequest{streamRecorder: &streamRecorder{block: block}, body: bytes.NewReader(data)}
+	errc := importAsync(importProvider(t), req)
+
+	require.Eventually(t, func() bool { return req.Blocked() && d.Held() == 1 }, 20*time.Second, 10*time.Millisecond)
+
+	close(release)
+	require.Never(t, func() bool { return len(errc) > 0 }, 300*time.Millisecond, 10*time.Millisecond)
+
+	close(block)
+	require.Error(t, waitReturn(t, errc))
+}
+
+func TestBuildImportLoadError(t *testing.T) {
+	d := &fakeDocker{fail: map[string]bool{"load": true}}
+	d.start(t)
+
+	_, err := importProvider(t).BuildImport("httpd", importArchive(t, importManifest))
+	require.ErrorContains(t, err, "failed")
+	require.Empty(t, callsWithPrefix(d.Calls(), "tag "))
+}
+
+func TestBuildImportPushErrorAfterHeaders(t *testing.T) {
+	shortKeepalive(t)
+
+	release := make(chan struct{})
+
+	d := &fakeDocker{fail: map[string]bool{"push": true}, hold: map[string]chan struct{}{"load": release}}
+	d.start(t)
+
+	p := importProvider(t)
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := newImportRequest(data)
+	errc := importAsync(p, req)
+
+	require.Eventually(t, func() bool {
+		_, codes, _ := req.snapshot()
+		return len(codes) == 1
+	}, 20*time.Second, 10*time.Millisecond)
+
+	close(release)
+	require.ErrorContains(t, waitReturn(t, errc), "failed")
+
+	_, codes, _ := req.snapshot()
+	require.Equal(t, []int{200}, codes)
+	require.Empty(t, requestsWithPrefix(p, "DynamoDB_20120810.PutItem"))
+
+	calls := d.Calls()
+	require.ElementsMatch(t, append([]string{"rmi " + importWeb, "rmi " + importWorker}, importTargets(calls)...), callsWithPrefix(calls, "rmi "))
+}
+
+func TestBuildImportCancel(t *testing.T) {
+	t.Run("push", func(t *testing.T) {
+		d := &fakeDocker{hold: map[string]chan struct{}{"push": make(chan struct{})}}
+		d.start(t)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		p := importProvider(t)
+		errc := importAsync(p.WithContext(ctx), importArchive(t, importManifest))
+
+		require.Eventually(t, func() bool { return d.Held() == 1 }, 20*time.Second, 10*time.Millisecond)
+
+		cancel()
+		require.ErrorIs(t, waitReturn(t, errc), context.Canceled)
+		require.Empty(t, requestsWithPrefix(p, "DynamoDB_20120810.PutItem"))
+
+		calls := d.Calls()
+		require.Len(t, callsWithPrefix(calls, "push "), 1)
+		require.ElementsMatch(t, append([]string{"rmi " + importWeb, "rmi " + importWorker}, importTargets(calls)...), callsWithPrefix(calls, "rmi "))
+	})
+
+	t.Run("load", func(t *testing.T) {
+		release := make(chan struct{})
+
+		d := &fakeDocker{hold: map[string]chan struct{}{"load": release}}
+		d.start(t)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		errc := importAsync(importProvider(t).WithContext(ctx), importArchive(t, importManifest))
+
+		require.Eventually(t, func() bool { return d.Held() == 1 }, 20*time.Second, 10*time.Millisecond)
+
+		cancel()
+		require.Never(t, func() bool { return len(errc) > 0 || len(d.Calls()) > 2 }, 300*time.Millisecond, 10*time.Millisecond)
+
+		close(release)
+		require.ErrorIs(t, waitReturn(t, errc), context.Canceled)
+
+		calls := d.Calls()
+		require.Contains(t, calls, "load")
+		require.Empty(t, callsWithPrefix(calls, "tag "))
+		require.ElementsMatch(t, []string{"rmi " + importWeb, "rmi " + importWorker, "rmi " + importTarget + ":web.B12345"}, callsWithPrefix(calls, "rmi "))
+	})
+}
+
+func TestBuildImportKeepaliveWriteError(t *testing.T) {
+	shortKeepalive(t)
+
+	d := &fakeDocker{hold: map[string]chan struct{}{"push": make(chan struct{})}}
+	d.start(t)
+
+	p := importProvider(t)
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := importRequest{streamRecorder: &streamRecorder{failAfterFlush: true}, body: bytes.NewReader(data)}
+
+	require.ErrorIs(t, waitReturn(t, importAsync(p, req)), context.Canceled)
+	require.Empty(t, requestsWithPrefix(p, "DynamoDB_20120810.PutItem"))
+
+	removed := callsWithPrefix(d.Calls(), "rmi ")
+	require.Subset(t, removed, []string{"rmi " + importWeb, "rmi " + importWorker})
+	require.Subset(t, []string{"rmi " + importWeb, "rmi " + importWorker, "rmi " + importTarget + ":web.B12345", "rmi " + importTarget + ":worker.B12345"}, removed)
+}
+
+func TestBuildImportLoadRejected(t *testing.T) {
+	d := &fakeDocker{reject: map[string]bool{"load": true}}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 16<<20)
+
+	require.ErrorContains(t, waitReturn(t, importAsync(importProvider(t), bytes.NewReader(data))), "rejected")
+	require.Empty(t, callsWithPrefix(d.Calls(), "tag "))
+}
+
+func TestBuildImportTruncated(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	data, _ := importTarball(t, importBuild, importManifest, 1<<20)
+
+	require.ErrorIs(t, waitReturn(t, importAsync(importProvider(t), bytes.NewReader(data[:len(data)/2]))), io.ErrUnexpectedEOF)
+
+	calls := d.Calls()
+	require.Contains(t, calls, "load")
+	require.Empty(t, callsWithPrefix(calls, "tag "))
+}
+
+func TestBuildImportFullEntryToLoad(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	data, size := importTarball(t, importBuild, importManifest, 4096)
+
+	_, err := importProvider(t).BuildImport("httpd", bytes.NewReader(data))
+	require.Error(t, err)
+	require.Equal(t, int64(size), d.Loaded())
+}
+
+func TestBuildImportBadArchive(t *testing.T) {
+	valid, _ := importTarball(t, importBuild, importManifest, 0)
+	nobuild, _ := importTarball(t, "", importManifest, 0)
+	notag, _ := importTarball(t, importBuild, `[{"Config":"config.json","RepoTags":["web"],"Layers":[]}]`, 0)
+
+	corrupt := append([]byte{}, valid...)
+	corrupt[len(corrupt)-8] ^= 0xff
+
+	for _, tc := range []struct {
+		name string
+		data []byte
+		err  string
+	}{
+		{"no build.json", nobuild, "invalid archive: build.json not found"},
+		{"tag without a colon", notag, "invalid image tag: web"},
+		{"corrupted trailer", corrupt, "gzip: invalid checksum"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := &fakeDocker{}
+			d.start(t)
+
+			req := newImportRequest(tc.data)
+
+			_, err := importProvider(t).BuildImport("httpd", req)
+			require.EqualError(t, err, tc.err)
+
+			_, codes, _ := req.snapshot()
+			require.Empty(t, codes)
+			require.Empty(t, callsWithPrefix(d.Calls(), "tag "))
+		})
+	}
+
+	t.Run("bytes after the archive", func(t *testing.T) {
+		d := &fakeDocker{}
+		d.start(t)
+
+		_, err := importProvider(t).BuildImport("httpd", bytes.NewReader(append(append([]byte{}, valid...), "trailing"...)))
+		require.Error(t, err)
+		require.Len(t, callsWithPrefix(d.Calls(), "push "), 2)
+	})
+}
+
+var cycleImportReleaseQueryEmpty = awsutil.Cycle{
+	Request:  awsutil.Request{Body: "ignore"},
+	Response: awsutil.Response{StatusCode: 200, Body: `{"Count":0,"Items":[],"ScannedCount":0}`},
+}
+
+var cycleImportIgnored = awsutil.Cycle{
+	Request:  awsutil.Request{Body: "ignore"},
+	Response: awsutil.Response{StatusCode: 200, Body: "{}"},
+}
+
+var cycleImportRackResources = awsutil.Cycle{
+	Request: awsutil.Request{Body: "ignore"},
+	Response: awsutil.Response{StatusCode: 200, Body: `<ListStackResourcesResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
+		<ListStackResourcesResult><StackResourceSummaries><member>
+			<LogicalResourceId>EncryptionKey</LogicalResourceId><PhysicalResourceId></PhysicalResourceId><ResourceType>AWS::KMS::Key</ResourceType>
+		</member></StackResourceSummaries></ListStackResourcesResult>
+	</ListStackResourcesResponse>`},
+}
+
+func ignored(c awsutil.Cycle) awsutil.Cycle {
+	c.Request.Body = "ignore"
+	return c
+}
+
+func TestBuildImport(t *testing.T) {
+	d := &fakeDocker{}
+	d.start(t)
+
+	p := StubAwsProvider(
+		cycleBuildDescribeStacks,
+		cycleBuildDescribeRepositories,
+		cycleBuildGetAuthorizationToken,
+		ignored(cycleBuildDescribeStacks),
+		ignored(cycleBuildPutItem),
+		ignored(cycleBuildDescribeStacks),
+		cycleImportReleaseQueryEmpty,
+		ignored(cycleBuildGetItem),
+		cycleImportRackResources,
+		ignored(cycleReleaseListStackResources),
+		ignored(cycleBuildDescribeStacks),
+		cycleImportIgnored,
+		cycleImportIgnored,
+		cycleImportIgnored,
+		ignored(cycleBuildDescribeStacks),
+		cycleImportIgnored,
+		cycleImportIgnored,
+	)
+	t.Cleanup(p.Close)
+
+	data, _ := importTarball(t, importBuild, importManifest, 0)
+	req := newImportRequest(data)
+
+	b, err := p.BuildImport("httpd", req)
+	require.NoError(t, err)
+	require.Equal(t, "abc123", b.GitSha)
+	require.Equal(t, "complete", b.Status)
+	require.NotEmpty(t, b.Release)
+	require.Equal(t, 0, p.handler.Remaining())
+
+	out, codes, _ := req.snapshot()
+	require.Empty(t, out)
+	require.Empty(t, codes)
+
+	puts := requestsWithPrefix(p, "DynamoDB_20120810.PutItem")
+	require.Len(t, puts, 3)
+	require.Contains(t, puts[0], `"git-sha":{"S":"abc123"}`)
+
+	publishes := requestsWithPrefix(p, " Action=Publish")
+	require.Len(t, publishes, 2)
+
+	form, err := url.ParseQuery(strings.TrimPrefix(publishes[1], " "))
+	require.NoError(t, err)
+
+	var event struct {
+		Action string            `json:"action"`
+		Data   map[string]string `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(form.Get("Message")), &event))
+	require.Equal(t, "build:create", event.Action)
+	require.Equal(t, b.Release, event.Data["release_id"])
+
+	calls := d.Calls()
+	require.Equal(t, []string{"tag " + importTarget + ":web.B12345", "tag " + importTarget + ":worker.B12345"}, callsWithPrefix(calls, "tag "))
+	require.Equal(t, []string{"push " + importTarget + ":web.B12345", "push " + importTarget + ":worker.B12345"}, callsWithPrefix(calls, "push "))
+	require.ElementsMatch(t, append([]string{"rmi " + importWeb, "rmi " + importWorker}, importTargets(calls)...), callsWithPrefix(calls, "rmi "))
 }

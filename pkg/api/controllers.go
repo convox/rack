@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"io"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -217,6 +218,9 @@ func (s *Server) BuildExport(c *stdapi.Context) error {
 	w := c.Response()
 
 	err := s.provider(c).WithContext(c.Context()).BuildExport(app, id, w)
+	if err != nil && w.Code() != 0 {
+		panic(http.ErrAbortHandler)
+	}
 	if err != nil {
 		return err
 	}
@@ -250,9 +254,15 @@ func (s *Server) BuildImport(c *stdapi.Context) error {
 	}
 
 	app := c.Var("app")
-	r := c
+	r := struct {
+		io.Reader
+		*stdapi.Response
+	}{c, c.Response()}
 
 	v, err := s.provider(c).WithContext(c.Context()).BuildImport(app, r)
+	if err != nil && c.Response().Code() != 0 {
+		panic(http.ErrAbortHandler)
+	}
 	if err != nil {
 		return err
 	}

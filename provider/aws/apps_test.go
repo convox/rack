@@ -759,6 +759,38 @@ func TestAppUpdateTagsRejected(t *testing.T) {
 	}
 }
 
+func TestAppUpdateForeignRack(t *testing.T) {
+	g2 := map[string]string{"Generation": "2", "Name": "web", "Rack": "convox", "System": "convox", "Type": "app"}
+	tags := []string{"Generation=2", "Name=web", "Rack=convox", "System=convox", "Type=app"}
+	stack := cycleDescribeAppStack("web", g2, map[string]string{"LogBucket": "", "Rack": "convox", "TaskTags": "No"})
+	moved := cycleDescribeAppStack("web", g2, map[string]string{"LogBucket": "", "Rack": "other", "TaskTags": "No"})
+	tagged := cycleDescribeAppStack("web", map[string]string{"CostCenter": "X", "Generation": "2", "Name": "web", "Rack": "convox", "System": "convox", "Type": "app"}, map[string]string{"Rack": "convox", "TaskTags": "No"})
+
+	tests := []struct {
+		name   string
+		params map[string]string
+		cycles []awsutil.Cycle
+	}{
+		{name: "foreign rack with a change", params: map[string]string{"Rack": "other", "TaskTags": "Yes"}, cycles: []awsutil.Cycle{stack, stack, cycleAppTagsUpdateStack([]string{"LogBucket", "Rack", "TaskTags=Yes"}, tags)}},
+		{name: "only foreign values differ", params: map[string]string{"LogBucket": "other-logs", "Rack": "other", "TaskTags": "No"}, cycles: []awsutil.Cycle{stack}},
+		{name: "key not on the stack", params: map[string]string{"Rack": "other", "Foo": "bar"}, cycles: []awsutil.Cycle{stack}},
+		{name: "own rack", params: map[string]string{"Rack": "convox", "TaskTags": "Yes"}, cycles: []awsutil.Cycle{stack, cycleAppTagsUpdateStack([]string{"LogBucket", "Rack=convox", "TaskTags=Yes"}, tags)}},
+		{name: "no foreign values", params: map[string]string{"TaskTags": "No"}, cycles: []awsutil.Cycle{stack, cycleAppTagsUpdateStack([]string{"LogBucket", "Rack", "TaskTags=No"}, tags)}},
+		{name: "foreign rack with tags", params: map[string]string{"Rack": "other", "Tags": "CostCenter=X", "TaskTags": "No"}, cycles: []awsutil.Cycle{tagged, cycleRackTagsDescribeStacks}},
+		{name: "repair a moved app", params: map[string]string{"Rack": "convox"}, cycles: []awsutil.Cycle{moved, cycleAppTagsUpdateStack([]string{"LogBucket", "Rack=convox", "TaskTags"}, tags)}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := StubAwsProvider(tt.cycles...)
+			defer provider.Close()
+
+			assert.NoError(t, provider.AppUpdate("web", structs.AppUpdateOptions{Parameters: tt.params}))
+			assert.Equal(t, 0, provider.handler.Remaining())
+		})
+	}
+}
+
 func TestAppUpdateBalancerType(t *testing.T) {
 	g1 := map[string]string{"Generation": "1", "Name": "web", "Rack": "convox", "System": "convox", "Type": "app"}
 	tags := []string{"Generation=1", "Name=web", "Rack=convox", "System=convox", "Type=app"}
