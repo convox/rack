@@ -2,5 +2,5 @@ package aws
 
 var RackTemplateURL = &rackTemplateURL
 
-// ExportKeepalive lets tests shorten the build export keepalive interval.
-var ExportKeepalive = &exportKeepalive
+// BuildKeepalive lets tests shorten the build export and import keepalive interval.
+var BuildKeepalive = &buildKeepalive

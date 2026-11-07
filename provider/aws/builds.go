@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -45,7 +47,7 @@ var regexpStackID = regexp.MustCompile(`arn:[^:]+:cloudformation:([^.]+):(\d+):s
 // buildWatchers lets tests join the goroutines runBuild starts.
 var buildWatchers sync.WaitGroup
 
-var exportKeepalive = 15 * time.Second
+var buildKeepalive = 15 * time.Second
 
 func (p *Provider) BuildCreate(app, url string, opts structs.BuildCreateOptions) (*structs.Build, error) {
 	log := Logger.At("BuildCreate").Namespace("app=%q url=%q", app, url).Start()
@@ -268,7 +270,7 @@ func (p *Provider) BuildExport(app, id string, w io.Writer) error {
 
 	go func() { done <- exportImages(ctx, log, images, file) }()
 
-	tick := time.NewTicker(exportKeepalive)
+	tick := time.NewTicker(buildKeepalive)
 	defer tick.Stop()
 
 wait:
@@ -401,8 +403,6 @@ func (p *Provider) BuildGet(app, id string) (*structs.Build, error) {
 
 // BuildImport imports a build artifact
 func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) {
-	log := Logger.At("BuildImport").Namespace("app=%s", app).Start()
-
 	var sourceBuild structs.Build
 
 	// set up the new build
@@ -412,6 +412,8 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	if p.IsTest() {
 		targetBuild.Id = "B12345"
 	}
+
+	log := Logger.At("BuildImport").Namespace("app=%s build=%s", app, targetBuild.Id).Start()
 
 	repo, err := p.appRepository(app)
 	if err != nil {
@@ -430,8 +432,28 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 	}
 
 	added := []string{}
+	loads := []func() error{}
+	stop := func() {}
 
-	defer func() { dockerRemove(added) }()
+	wait := func() error {
+		var err error
+
+		for _, load := range loads {
+			if lerr := load(); lerr != nil && err == nil {
+				err = lerr
+			}
+		}
+
+		loads = nil
+
+		return err
+	}
+
+	defer func() {
+		_ = wait()
+		dockerRemove(added)
+		stop()
+	}()
 
 	gz, err := gzip.NewReader(r)
 	if err != nil {
@@ -439,9 +461,13 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		return nil, err
 	}
 
+	gz.Multistream(false)
+
 	tr := tar.NewReader(gz)
 
 	var manifest imageManifest
+
+	found := false
 
 	for {
 		header, err := tr.Next()
@@ -465,7 +491,7 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 				return nil, err
 			}
 
-			targetBuild.Id = generateId("B", 10)
+			found = true
 		}
 
 		if strings.HasSuffix(header.Name, ".tar") {
@@ -473,26 +499,32 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 
 			cmd := exec.Command("docker", "load")
 
-			pr, pw := io.Pipe()
-			tee := io.TeeReader(tr, pw)
-			outb := &bytes.Buffer{}
+			out := &bytes.Buffer{}
+			cmd.Stdout = out
+			cmd.Stderr = out
 
-			cmd.Stdin = pr
-			cmd.Stdout = outb
+			stdin, err := cmd.StdinPipe()
+			if err != nil {
+				return nil, log.Error(err)
+			}
 
 			if err := cmd.Start(); err != nil {
 				log.Error(err)
 				return nil, err
 			}
 
+			loads = append(loads, func() error {
+				_ = stdin.Close()
+
+				if err := cmd.Wait(); err != nil {
+					return fmt.Errorf("%s: %s", lastline(out.Bytes()), err.Error())
+				}
+
+				return nil
+			})
+
 			log.Step("manifest").Logf("tar=%q", header.Name)
-			manifest, err = extractImageManifest(tee)
-			if err != nil {
-				log.Error(err)
-				_ = pw.CloseWithError(err)
-				_ = cmd.Wait()
-				return nil, err
-			}
+			manifest, err = extractImageManifest(io.TeeReader(tr, stdin))
 
 			for _, tags := range manifest {
 				for _, image := range tags.RepoTags {
@@ -502,14 +534,17 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 				}
 			}
 
-			if err := pw.Close(); err != nil {
-				log.Error(err)
-				return nil, err
+			if err == nil {
+				_, err = io.Copy(stdin, tr)
 			}
-
-			if err := cmd.Wait(); err != nil {
-				out := strings.TrimSpace(outb.String())
-				return nil, log.Errorf("%s: %s\n", out, err.Error())
+			if err == nil {
+				err = stdin.Close()
+			}
+			if err != nil {
+				if lerr := wait(); lerr != nil && errors.Is(err, syscall.EPIPE) {
+					err = lerr
+				}
+				return nil, log.Error(err)
 			}
 
 			if len(manifest) == 0 {
@@ -519,33 +554,71 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		}
 	}
 
+	if _, err := io.Copy(io.Discard, gz); err != nil {
+		return nil, log.Error(err)
+	}
+
+	if _, err := io.Copy(io.Discard, r); err != nil {
+		return nil, log.Error(err)
+	}
+
+	if !found {
+		return nil, log.Error(fmt.Errorf("invalid archive: build.json not found"))
+	}
+
+	sources := []string{}
 	targets := []string{}
 
 	for _, tags := range manifest {
 		for _, image := range tags.RepoTags {
-			fps := strings.Split(image, ":")[1]
-			ps := strings.Split(fps, ".")[0]
-			target := fmt.Sprintf("%s:%s.%s", repo.URI, ps, targetBuild.Id)
-
-			added = append(added, target)
-			targets = append(targets, target)
-
-			log.Step("tag").Logf("from=%q to=%q", image, target)
-			if out, err := exec.Command("docker", "tag", image, target).CombinedOutput(); err != nil {
-				return nil, log.Error(fmt.Errorf("%s: %s", lastline(out), err.Error()))
+			i := strings.LastIndex(image, ":")
+			if i < 0 {
+				return nil, log.Error(fmt.Errorf("invalid image tag: %s", image))
 			}
+
+			sources = append(sources, image)
+			targets = append(targets, fmt.Sprintf("%s:%s.%s", repo.URI, strings.Split(image[i+1:], ".")[0], targetBuild.Id))
+		}
+	}
+
+	ctx, cancel := context.WithCancel(p.Context())
+	defer cancel()
+
+	if w, ok := r.(http.ResponseWriter); ok {
+		stop = importKeepalive(w, cancel, log)
+	}
+
+	if err := wait(); err != nil {
+		return nil, log.Error(err)
+	}
+
+	fail := func(out []byte, err error) error {
+		if ctx.Err() != nil {
+			return log.Step("cancel").Error(ctx.Err())
+		}
+
+		return log.Error(fmt.Errorf("%s: %s", lastline(out), err.Error()))
+	}
+
+	for i, target := range targets {
+		added = append(added, target)
+
+		log.Step("tag").Logf("from=%q to=%q", sources[i], target)
+		if out, err := exec.CommandContext(ctx, "docker", "tag", sources[i], target).CombinedOutput(); err != nil {
+			return nil, fail(out, err)
 		}
 	}
 
 	for _, target := range targets {
 		log.Step("push").Logf("to=%q", target)
-		if out, err := exec.Command("docker", "push", target).CombinedOutput(); err != nil {
-			return nil, log.Error(fmt.Errorf("%s: %s", lastline(out), err.Error()))
+		if out, err := exec.CommandContext(ctx, "docker", "push", target).CombinedOutput(); err != nil {
+			return nil, fail(out, err)
 		}
 	}
 
 	targetBuild.Description = sourceBuild.Description
 	targetBuild.Ended = time.Now().UTC()
+	targetBuild.GitSha = sourceBuild.GitSha
 	targetBuild.Logs = sourceBuild.Logs
 	targetBuild.Manifest = sourceBuild.Manifest
 
@@ -567,11 +640,55 @@ func (p *Provider) BuildImport(app string, r io.Reader) (*structs.Build, error) 
 		return nil, err
 	}
 
-	p.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": targetBuild.App, "id": targetBuild.Id, "release_id": targetBuild.Id}})
+	_ = p.EventSend("build:create", structs.EventSendOptions{Data: map[string]string{"app": targetBuild.App, "id": targetBuild.Id, "release_id": rr.Id}})
 
 	log.Successf("build=%q release=%q", targetBuild.Id, rr.Id)
 
 	return targetBuild, nil
+}
+
+func importKeepalive(w http.ResponseWriter, cancel func(), log *logger.Logger) func() {
+	quit := make(chan struct{})
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		tick := time.NewTicker(buildKeepalive)
+		defer tick.Stop()
+
+		started := false
+
+		for {
+			select {
+			case <-quit:
+				return
+			case <-tick.C:
+			}
+
+			if !started {
+				log.Step("headers").Logf("status=%d", http.StatusOK)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				started = true
+			}
+
+			if _, err := w.Write([]byte(" ")); err != nil {
+				_ = log.Error(err)
+				cancel()
+				return
+			}
+
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+	}()
+
+	return func() {
+		close(quit)
+		<-done
+	}
 }
 
 // BuildList returns a list of the latest builds, with the length specified in limit

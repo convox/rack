@@ -183,6 +183,56 @@ func TestBuildExportStarted(t *testing.T) {
 	}
 }
 
+func TestBuildImportStarted(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{"success", nil},
+		{"error", fmt.Errorf("err1")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b1 := fxBuild
+
+			p := &structs.MockProvider{}
+			p.On("Initialize", mock.Anything).Return(nil)
+			p.On("WithContext", mock.Anything).Return(p)
+			p.On("SystemJwtSignKey").Return("", nil)
+			p.On("BuildImport", "app1", mock.Anything).Return(&b1, tc.err).Run(func(args mock.Arguments) {
+				r := args.Get(1).(io.Reader)
+				data, err := io.ReadAll(r)
+				require.NoError(t, err)
+				require.Equal(t, "data", string(data))
+
+				w := r.(http.ResponseWriter)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(" "))
+				w.(http.Flusher).Flush()
+			})
+
+			s := api.NewWithProvider(p)
+			s.Logger = logger.Discard
+
+			ht := httptest.NewServer(s)
+			defer ht.Close()
+
+			c, err := stdsdk.New(ht.URL)
+			require.NoError(t, err)
+
+			b2 := structs.Build{}
+			err = c.Post("/apps/app1/builds/import", stdsdk.RequestOptions{Body: strings.NewReader("data")}, &b2)
+			if tc.err == nil {
+				require.NoError(t, err)
+				require.Equal(t, b1, b2)
+			} else {
+				require.ErrorIs(t, err, io.ErrUnexpectedEOF)
+			}
+
+			p.AssertExpectations(t)
+		})
+	}
+}
+
 func TestBuildImport(t *testing.T) {
 	testServer(t, func(c *stdsdk.Client, p *structs.MockProvider) {
 		b1 := fxBuild

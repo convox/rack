@@ -51,12 +51,14 @@ func stubDocker(cycles ...awsutil.Cycle) *httptest.Server {
 type fakeDocker struct {
 	images []string
 	fail   map[string]bool
+	reject map[string]bool
 	slow   map[string]time.Duration
 	hold   map[string]chan struct{}
 
-	mu    sync.Mutex
-	calls []string
-	held  int
+	mu     sync.Mutex
+	calls  []string
+	held   int
+	loaded int64
 }
 
 func (f *fakeDocker) start(t *testing.T) {
@@ -86,9 +88,14 @@ func (f *fakeDocker) Held() int {
 	return f.held
 }
 
-func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, _ = io.Copy(io.Discard, r.Body)
+func (f *fakeDocker) Loaded() int64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
+	return f.loaded
+}
+
+func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/v1.24")
 	q := r.URL.Query()
 
@@ -123,6 +130,18 @@ func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		call = r.Method + " " + path
 	}
 
+	if f.reject[call] {
+		f.mu.Lock()
+		f.calls = append(f.calls, call)
+		f.mu.Unlock()
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"rejected"}`))
+		return
+	}
+
+	n, _ := io.Copy(io.Discard, r.Body)
+
 	time.Sleep(f.slow[call])
 
 	if ch := f.hold[strings.Fields(call)[0]]; ch != nil {
@@ -138,6 +157,9 @@ func (f *fakeDocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	f.mu.Lock()
 	f.calls = append(f.calls, call)
+	if call == "load" {
+		f.loaded = n
+	}
 	f.mu.Unlock()
 
 	if f.fail[call] || f.fail[strings.Fields(call)[0]] {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"sort"
 	"strings"
@@ -247,10 +248,19 @@ func (p *Provider) AppMetrics(name string, opts structs.MetricsOptions) (structs
 }
 
 func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
-	params := opts.Parameters
+	params := maps.Clone(opts.Parameters)
 
 	if params == nil {
 		params = map[string]string{}
+	}
+
+	foreign := false
+
+	for k, v := range map[string]string{"LogBucket": p.LogBucket, "Rack": p.Rack} {
+		if pv, ok := params[k]; ok && pv != v {
+			delete(params, k)
+			foreign = true
+		}
 	}
 
 	if err := p.appBalancerTypeChange(app, params); err != nil {
@@ -275,6 +285,13 @@ func (p *Provider) AppUpdate(app string, opts structs.AppUpdateOptions) error {
 		}
 
 		params, tags, noop = changes, t, unchanged
+	} else if foreign {
+		stack, err := p.describeStack(p.rackStack(app))
+		if err != nil {
+			return err
+		}
+
+		noop = !paramsChanged(stackParameters(stack), params)
 	}
 
 	if opts.Lock != nil {
@@ -368,15 +385,17 @@ func (p *Provider) appTags(app, raw string, changes map[string]string) (map[stri
 		}
 	}
 
-	current := stackParameters(stack)
+	return tags, !paramsChanged(stackParameters(stack), changes), nil
+}
 
-	for k, v := range changes {
+func paramsChanged(current, params map[string]string) bool {
+	for k, v := range params {
 		if cv, ok := current[k]; ok && cv != v {
-			return tags, false, nil
+			return true
 		}
 	}
 
-	return tags, true, nil
+	return false
 }
 
 func parseAppTags(raw string) ([]string, map[string]string, error) {

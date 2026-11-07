@@ -2,8 +2,11 @@ package aws_test
 
 import (
 	"bytes"
+	"io"
+	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/convox/logger"
@@ -15,17 +18,27 @@ import (
 )
 
 func init() {
-	logger.Output = &bytes.Buffer{}
+	logger.Output = io.Discard
 }
 
 type AwsStub struct {
 	*aws.Provider
 	server  *httptest.Server
 	handler *awsutil.Handler
+
+	mu       sync.Mutex
+	requests []string
 }
 
 func (a *AwsStub) Close() {
 	a.server.Close()
+}
+
+func (a *AwsStub) Requests() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	return append([]string{}, a.requests...)
 }
 
 // StubAwsProvider creates an httptest server with canned Request / Response
@@ -33,7 +46,18 @@ func (a *AwsStub) Close() {
 // the test server as the endpoint
 func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 	handler := awsutil.NewHandler(cycles)
-	s := httptest.NewServer(handler)
+	stub := &AwsStub{handler: handler}
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		r.Body = io.NopCloser(bytes.NewReader(body))
+
+		stub.mu.Lock()
+		stub.requests = append(stub.requests, r.Header.Get("X-Amz-Target")+" "+string(body))
+		stub.mu.Unlock()
+
+		handler.ServeHTTP(w, r)
+	}))
 
 	os.Setenv("AWS_ACCESS_KEY_ID", "test-access")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "test-secret")
@@ -58,7 +82,10 @@ func StubAwsProvider(cycles ...awsutil.Cycle) *AwsStub {
 		CloudWatch:     cw,
 	}
 
-	return &AwsStub{p, s, handler}
+	stub.Provider = p
+	stub.server = s
+
+	return stub
 }
 
 func testProvider(fn func(p *aws.Provider)) {

@@ -254,9 +254,15 @@ func (s *Server) BuildImport(c *stdapi.Context) error {
 	}
 
 	app := c.Var("app")
-	r := c
+	r := struct {
+		io.Reader
+		*stdapi.Response
+	}{c, c.Response()}
 
 	v, err := s.provider(c).WithContext(c.Context()).BuildImport(app, r)
+	if err != nil && c.Response().Code() != 0 {
+		panic(http.ErrAbortHandler)
+	}
 	if err != nil {
 		return err
 	}
